@@ -58,10 +58,10 @@ nav .wrap{min-height:64px}
 <header class="hero"><div class="wrap"><div class="kicker">Core quiz · Source-labelled PYQs · Original practice</div><h1>Practice across your subjects.</h1><p>Choose a subject, answer MCQs, review mistakes and bookmark tricky questions. This library includes 1,508 source-labelled questions plus 307 separately labelled original practice questions for Hindi, English, Reasoning, Mathematics, Static GK and General Science.</p></div></header>
 <main class="wrap">
 <div class="stats"><div class="stat"><strong id="totalCount">1,815</strong><span>Total practice MCQs</span></div><div class="stat"><strong id="answeredCount">0</strong><span>Answered on this device</span></div><div class="stat"><strong id="accuracyCount">—</strong><span>Accuracy of answered MCQs</span></div><div class="stat"><strong id="bookmarkCount">0</strong><span>Bookmarked for revision</span></div></div>
-<div class="toolbar"><div class="field"><label for="subjectSelect">SUBJECT</label><select id="subjectSelect"><option value="all">All subjects</option></select></div><div class="field"><label for="topicSelect">TOPIC</label><select id="topicSelect"><option value="all">All topics</option></select></div><div class="field"><label for="searchBox">SEARCH QUESTIONS</label><input id="searchBox" type="search" placeholder="Search a keyword, formula or concept…"></div></div>
+<div class="toolbar"><div class="field"><label for="subjectSelect">SUBJECT</label><select id="subjectSelect"><option value="all">All subjects</option></select></div><div class="field"><label for="topicSelect">TOPIC</label><select id="topicSelect"><option value="all">All topics</option></select></div><div class="field"><label for="questionTypeSelect">QUESTION SET</label><select id="questionTypeSelect"><option value="all">All questions</option><option value="core">Core MCQ</option><option value="pyq">PYQs (source-labelled)</option></select></div><div class="field"><label for="searchBox">SEARCH QUESTIONS</label><input id="searchBox" type="search" placeholder="Search a keyword, formula or concept…"></div></div>
 <div class="filters" id="filters"><button class="chip active" data-filter="all">All questions</button><button class="chip" data-filter="unanswered">Unanswered</button><button class="chip" data-filter="wrong">Wrong answers</button><button class="chip" data-filter="bookmarked">Bookmarks ★</button></div>
 <div class="quiz-preferences"><label class="auto-next"><input type="checkbox" id="autoNextToggle" checked> Auto-next after answer <span>· 2.5 seconds</span></label><span id="resumeNote" aria-live="polite">Your place is saved automatically.</span></div>
-<div class="notice">Source integrity note: 3 records from the supplied PDF could not be safely loaded because their question/options formatting was incomplete or ambiguous. Their missing choices have not been invented. All-Exams PYQ questions retain their source exam/year labels. The v3 master includes audited answer-key corrections and two replacement questions; independently checked or review-needed entries are flagged. Some older law/tax questions reflect the exam year shown in the source tag.</div>
+<div class="notice">Source integrity note: 3 records from the supplied PDF could not be safely loaded because their question/options formatting was incomplete or ambiguous. Their missing choices have not been invented. Use the Question Set filter to separate Core MCQs from source-labelled PYQs; original exam/year labels are retained. The v3 master includes audited answer-key corrections and two replacement questions; independently checked or review-needed entries are flagged. Some older law/tax questions reflect the exam year shown in the source tag.</div>
 <div class="layout"><section class="question-card" id="questionCard" aria-live="polite"></section><aside class="side"><div class="side-card"><h3>Your progress</h3><p>Saved automatically in this browser on this device.</p><div class="progressbar"><span id="progressFill"></span></div><div class="side-row"><span>Answered</span><b id="sideAnswered">0 / 1,815</b></div><div class="side-row"><span>Correct</span><b id="sideCorrect">0</b></div><div class="side-row"><span>Incorrect</span><b id="sideWrong">0</b></div></div><div class="side-card"><h3>Subject counts</h3><div id="subjectCounts"></div></div><div class="side-card"><h3>Keep in mind</h3><p>Saved progress stays in the same browser profile. It will not automatically sync to another phone or computer. Avoid clearing site data if you want to keep it.</p><button class="btn" id="exportBtn" type="button">Export my progress</button></div></aside></div>
 </main>
 <footer class="footer"><div class="wrap"><span>JVVNL Prep • Independent practice project</span><span><a href="./">Back to home</a> · <a href="./cost-accounting.html">Open 700-MCQ Cost Accounting</a></span></div></footer>
@@ -145,7 +145,7 @@ const subjectSelect=$('subjectSelect'), topicSelect=$('topicSelect'), searchBox=
 const params=new URLSearchParams(location.search);
 const validSlugs=new Set(bank.sections.map(s=>s.slug));
 const initial=params.get('subject');
-let selectedSubject=validSlugs.has(initial)?initial:'all', selectedTopic='all', filterMode='all', search='', index=0;
+let selectedSubject=validSlugs.has(initial)?initial:'all', selectedTopic='all', filterMode='all', questionType=['core','pyq'].includes(params.get('type'))?params.get('type'):'all', search='', index=0;
 let state={answers:{},bookmarks:[],positions:{},autoNext:true};
 try{const saved=JSON.parse(localStorage.getItem('jvvnl-source-bank-progress-v1')||'null');if(saved&&typeof saved==='object'){state.answers=saved.answers||{};state.bookmarks=Array.isArray(saved.bookmarks)?saved.bookmarks:[];state.positions=saved.positions&&typeof saved.positions==='object'?saved.positions:{};if(typeof saved.autoNext==='boolean')state.autoNext=saved.autoNext;}}catch(e){}
 Object.entries(duplicateAliases).forEach(([duplicateId,canonicalId])=>{
@@ -157,7 +157,7 @@ Object.entries(duplicateAliases).forEach(([duplicateId,canonicalId])=>{
   if(Number.isInteger(mappedIndex)&&mappedIndex>=0)state.answers[canonicalId]=mappedIndex;
 });
 state.bookmarks=[...new Set((state.bookmarks||[]).map(id=>duplicateAliases[id]||id))];
-const positionKey=()=>selectedSubject+'|'+selectedTopic+'|'+filterMode+'|'+search;
+const positionKey=()=>selectedSubject+'|'+selectedTopic+'|'+filterMode+'|'+questionType+'|'+search;
 index=Number.isInteger(state.positions[positionKey()])?Math.max(0,state.positions[positionKey()]):0;
 const save=()=>{try{state.positions=state.positions||{};state.positions[positionKey()]=index;localStorage.setItem('jvvnl-source-bank-progress-v1',JSON.stringify(state));}catch(e){}};
 let advanceTimer=null;
@@ -170,9 +170,12 @@ refreshTopics();
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const formatExplanation=s=>esc(s).replace(/\\\(/g,'').replace(/\\\)/g,'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
 const formatAlternateExplanations=q=>(q.alternateExplanations||[]).map(note=>'<details class="alt-source-note"><summary>Additional source explanation · '+esc(note.source||'Source')+'</summary><div>'+formatExplanation(note.explanation||'')+'</div></details>').join('');
+const isPYQ=q=>/^pyq-/i.test(String(q.id||''))||/pyq/i.test(String(q.subject||''))||/\bpyq\b/i.test(String(q.source||''))||/\bpyq\b/i.test(String(q.sourceType||''));
 const questionsForView=()=>bank.questions.filter(q=>{
 if(selectedSubject!=='all'&&q.subject!==selectedSubject)return false;
 if(selectedTopic!=='all'&&q.topic!==selectedTopic)return false;
+if(questionType==='pyq'&&!isPYQ(q))return false;
+if(questionType==='core'&&isPYQ(q))return false;
 const a=state.answers[q.id];
 if(filterMode==='unanswered'&&a!==undefined)return false;
 if(filterMode==='wrong'&&(a===undefined||a===q.answer))return false;
@@ -218,6 +221,7 @@ $('nextBtn').onclick=()=>{cancelAutoAdvance();if(index<list.length-1){index++;sa
 updateStats();
 }
 subjectSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedSubject=subjectSelect.value;selectedTopic='all';refreshTopics();index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
+const questionTypeSelect=$('questionTypeSelect');questionTypeSelect.value=questionType;questionTypeSelect.addEventListener('change',()=>{cancelAutoAdvance();questionType=questionTypeSelect.value;index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
 topicSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedTopic=topicSelect.value;index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
 searchBox.addEventListener('input',()=>{cancelAutoAdvance();search=searchBox.value.trim().toLowerCase();index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
 document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{cancelAutoAdvance();filterMode=b.dataset.filter;index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x===b));render();save();}));
