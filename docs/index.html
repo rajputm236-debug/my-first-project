@@ -22,6 +22,38 @@ footer{background:#101d35;color:#d2dced;padding:27px 0}.footrow{display:flex;ali
 
 /* Advanced subject library */
 .library-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;margin:0 0 16px;padding:16px;background:linear-gradient(135deg,#fff,#f4f8ff);border:1px solid var(--line);border-radius:18px;box-shadow:0 8px 28px rgba(18,36,63,.045)}.library-search{display:flex;align-items:center;gap:10px;min-width:0;border:1px solid #d7e1ef;background:white;border-radius:13px;padding:0 13px}.library-search span{font-size:24px;color:var(--blue);line-height:1}.library-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;padding:13px 0;font:inherit;color:var(--ink)}.sort-control{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.06em}.sort-control select{border:1px solid #d7e1ef;border-radius:11px;background:white;color:var(--ink);padding:11px;font:inherit;letter-spacing:0;text-transform:none}.category-filters{grid-column:1/-1;display:flex;gap:7px;flex-wrap:wrap}.subject-filter{border:1px solid #dce5f1;background:#fff;color:#53647c;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;line-height:1.2;font-family:inherit;cursor:pointer;transition:all .18s}.subject-filter:hover,.subject-filter.active{background:var(--navy);border-color:var(--navy);color:white}.library-summary{grid-column:1/-1;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);padding:0 2px}.library-summary b{color:var(--ink)}.subject{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.subject:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(18,36,63,.09);border-color:#c8d8ee}.subject[hidden]{display:none!important}.cardfoot{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.cardfoot>span{width:100%;margin-bottom:2px}.cardlink{display:inline-flex;align-items:center;gap:4px;background:#f1f6ff;border:1px solid #e0eaf8;border-radius:9px;padding:7px 9px;text-decoration:none;font-size:11px;font-weight:800;color:var(--blue);white-space:normal}.cardlink:hover{background:#e5efff;border-color:#c7dbf8}.grid .subject h3{letter-spacing:-.025em}.library-empty{grid-column:1/-1;padding:35px 18px;border:1px dashed var(--line);border-radius:18px;background:#fff;color:var(--muted);text-align:center}.library-empty strong{display:block;color:var(--ink);font-size:16px;margin-bottom:5px}@media(max-width:700px){.library-tools{grid-template-columns:1fr;padding:12px}.sort-control{align-items:flex-start;flex-direction:column}.sort-control select{width:100%}.library-summary{font-size:10px}.category-filters{gap:6px}.subject-filter{padding:8px 10px}.cardlink{font-size:10px}}
+
+/* UI polish pass: accessible focus, clearer hierarchy, and calmer responsive surfaces */
+:focus-visible{outline:3px solid #78aaf4;outline-offset:3px}
+::selection{background:#cfe2ff;color:#10284a}
+.btn,.navbtn,.cardlink,.subject-filter,.subject{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background-color .18s ease}
+.btn:focus-visible,.cardlink:focus-visible,.subject-filter:focus-visible{outline-offset:4px}
+nav{position:relative;z-index:5}
+nav .wrap{min-height:66px}
+.hero{isolation:isolate}
+.hero h1{max-width:760px;text-wrap:balance}
+.hero p{line-height:1.75}
+.hero-panel{box-shadow:0 22px 55px #07152a35}
+.hero-number{font-variant-numeric:tabular-nums}
+.btn{box-shadow:0 2px 5px #07152a0a}
+.btn.primary:hover{transform:translateY(-2px);box-shadow:0 9px 22px #07152a25}
+.btn.ghost:hover{background:#ffffff18;border-color:#ffffff80}
+.quickstats{position:relative}
+.stat{box-shadow:0 5px 18px #15243b05}
+.subject{overflow-wrap:anywhere}
+.subject h3{line-height:1.3}
+.subject p{line-height:1.65}
+.subject.available:focus-within{border-color:#8fb3e8;box-shadow:0 0 0 3px #dceaff}
+.cardlink:focus-visible{background:#e5efff}
+.section-head{align-items:flex-start}
+.library-search:focus-within{border-color:#79a6e5;box-shadow:0 0 0 3px #dceaff}
+.library-search input:focus-visible{outline:none}
+.subject-filter:active,.btn:active,.cardlink:active{transform:translateY(1px)}
+footer a:hover{text-decoration:underline}
+@media(max-width:760px){nav .wrap{align-items:center}.hero-panel{width:100%}.section-head{flex-direction:column;align-items:flex-start}.hero h1{max-width:14ch}}
+@media(max-width:470px){.hero h1{font-size:clamp(31px,9vw,38px)}.hero .actions .btn{width:100%}.hero-panel{padding:17px}.subject{padding:16px}.library-search input{font-size:16px}}
+@media(prefers-reduced-motion:reduce){.btn,.navbtn,.cardlink,.subject-filter,.subject{transition:none!important}}
+
 </style>
 </head>
 <body>
