@@ -60,6 +60,8 @@ if(filterMode==='bookmarked'&&!state.bookmarks.includes(q.id))return false;
 if(search){const hay=(q.question+' '+q.options.join(' ')+' '+q.source+' '+q.subjectName).toLowerCase();if(!hay.includes(search))return false;}
 return true;
 });
+const resumePastAnswered=()=>{if(!state.autoNext||filterMode!=='all')return;const list=questionsForView();while(index<list.length&&state.answers[list[index].id]!==undefined)index++;if(index>=list.length)index=Math.max(0,list.length-1);};
+
 function updateStats(){
 const all=bank.questions, answered=all.filter(q=>state.answers[q.id]!==undefined), correct=answered.filter(q=>state.answers[q.id]===q.answer).length, wrong=answered.length-correct;
 $('totalCount').textContent=all.length;$('answeredCount').textContent=answered.length;$('accuracyCount').textContent=answered.length?Math.round(correct/answered.length*100)+'%':'—';$('bookmarkCount').textContent=state.bookmarks.length;
@@ -79,13 +81,13 @@ $('prevBtn').onclick=()=>{cancelAutoAdvance();index=Math.max(0,index-1);save();r
 $('nextBtn').onclick=()=>{cancelAutoAdvance();if(index<list.length-1){index++;save();render();card.scrollIntoView({behavior:'smooth',block:'start'});}else{$('resumeNote').textContent='You reached the end of this view. Change filters or choose another subject to continue.';card.scrollIntoView({behavior:'smooth',block:'start'});}};
 updateStats();
 }
-subjectSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedSubject=subjectSelect.value;selectedTopic='all';refreshTopics();index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;render();save();});
-topicSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedTopic=topicSelect.value;index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;render();save();});
-searchBox.addEventListener('input',()=>{cancelAutoAdvance();search=searchBox.value.trim().toLowerCase();index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;render();save();});
-document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{cancelAutoAdvance();filterMode=b.dataset.filter;index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x===b));render();save();}));
+subjectSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedSubject=subjectSelect.value;selectedTopic='all';refreshTopics();index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
+topicSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedTopic=topicSelect.value;index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
+searchBox.addEventListener('input',()=>{cancelAutoAdvance();search=searchBox.value.trim().toLowerCase();index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{cancelAutoAdvance();filterMode=b.dataset.filter;index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x===b));render();save();}));
 const autoNextToggle=$('autoNextToggle');autoNextToggle.checked=state.autoNext;autoNextToggle.addEventListener('change',()=>{state.autoNext=autoNextToggle.checked;if(!state.autoNext)cancelAutoAdvance();save();$('resumeNote').textContent=state.autoNext?'Auto-next enabled.':'Auto-next disabled.';});
 $('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),state},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='jvvnl-practice-progress.json';a.click();URL.revokeObjectURL(url);});
-render();
+resumePastAnswered();save();render();
 })();
 </script>
 </body></html>
