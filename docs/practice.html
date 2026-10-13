@@ -39,6 +39,17 @@ nav .wrap{min-height:64px}
 @media(max-width:780px){.hero{padding:27px 0 20px}.layout{gap:12px}.question-card{min-height:240px}.side{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.hero h1{font-size:clamp(28px,8vw,36px)}.question-card{padding:16px}.option{padding:12px 10px;gap:9px}.letter{flex-basis:26px;width:26px;height:26px}.filters{overflow-x:auto;padding:2px 1px 7px;flex-wrap:nowrap}.chip{white-space:nowrap}.side{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.chip,.option,.btn{transition:none!important}}
+
+.completion-panel{padding:clamp(18px,3vw,30px);border:1px solid var(--line);border-radius:18px;background:var(--paper)}
+.completion-panel h2{margin:6px 0 8px;font-size:clamp(1.45rem,3vw,2rem)}
+.completion-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:20px 0}
+.completion-stat{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--bg);min-width:0}
+.completion-stat strong{display:block;font-size:1.45rem;line-height:1.2;overflow-wrap:anywhere}
+.completion-stat span{display:block;color:var(--muted);font-size:.82rem;margin-top:5px}
+.completion-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.alt-source-note{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.alt-source-note summary{cursor:pointer;font-weight:600}
+@media(max-width:600px){.completion-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.completion-actions .btn{flex:1 1 100%}}
 </style>
 </head>
 <body>
@@ -60,6 +71,73 @@ nav .wrap{min-height:64px}
 (function(){
 const bank=window.JVVNL_BANK;
 if(!bank||!Array.isArray(bank.questions)){document.getElementById('questionCard').textContent='Question bank could not be loaded. Please refresh the page.';return;}
+const duplicateAliases=Object.create(null);
+const normalizeQuestionText=value=>String(value??'').toLowerCase().normalize('NFKC').replace(/&/g,' and ').replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
+const normalizeOptionText=value=>String(value??'').toLowerCase().normalize('NFKC').replace(/[−–—]/g,'-').replace(/&/g,' and ').replace(/(\d)\s*\.\s*(\d)/g,'$1.$2').replace(/[^\p{L}\p{N}+\-×÷=.%₹]+/gu,' ').trim().replace(/\s+/g,' ');
+const correctChoice=q=>normalizeOptionText(Array.isArray(q.options)?q.options[q.answer]:'');
+const optionOverlap=(a,b)=>{const left=new Set((a.options||[]).map(normalizeOptionText)),right=new Set((b.options||[]).map(normalizeOptionText));let shared=0;left.forEach(v=>{if(right.has(v))shared++;});return shared/Math.max(left.size,right.size,1);};
+const pairKey=(a,b)=>[a,b].sort().join('|');
+const manualDuplicatePairs=new Set([
+  ['original-HI-02','original-extra-092'],
+  ['original-extra-069','auditing-deep-44'],
+  ['original-extra-016','corp404-80'],
+  ['pyq-283','corp404-377'],
+  ['pyq-302','corp404-379'],
+  ['pyq-372','corp404-404'],
+  ['pyq-388','corp404-373'],
+  ['pyq-42','pyq-57'],
+  ['pyq-65','pyq-96'],
+  ['pyq-579','pyq-595']
+].map(pair=>pairKey(pair[0],pair[1])));
+const genericQuestionStems=new Set([
+  'which of the following statements is true',
+  'which of the following statements is correct',
+  'which of the following statements are correct',
+  'which pair is correctly matched',
+  'match list i with list ii',
+  'which of the following is correct',
+  'which of the following statement is correct'
+]);
+const stopWords=new Set('which what of the the is are a an in on for from to by be been being that this these those following one it their them or and with as when where who how does do did was were will can may must not'.split(' '));
+const questionTokens=value=>new Set(normalizeQuestionText(value).split(' ').filter(word=>word.length>2&&!stopWords.has(word)));
+const isDuplicateQuestion=(a,b)=>{
+  if(a.subject!==b.subject)return false;
+  if(manualDuplicatePairs.has(pairKey(a.id,b.id)))return true;
+  const left=normalizeQuestionText(a.question),right=normalizeQuestionText(b.question);
+  const leftAnswer=correctChoice(a),rightAnswer=correctChoice(b);
+  if(!leftAnswer||!rightAnswer||leftAnswer!==rightAnswer)return false;
+  const overlap=optionOverlap(a,b);
+  if(left===right)return genericQuestionStems.has(left)?overlap>=0.75:true;
+  if(Math.min(left.length,right.length)<60||/read the given passage|based on the following passage/.test(left)||/read the given passage|based on the following passage/.test(right))return false;
+  const leftTokens=questionTokens(left),rightTokens=questionTokens(right);
+  let shared=0;leftTokens.forEach(word=>{if(rightTokens.has(word))shared++;});
+  const jaccard=shared/(leftTokens.size+rightTokens.size-shared);
+  const containment=shared/Math.max(1,Math.min(leftTokens.size,rightTokens.size));
+  return (jaccard>=0.88||containment>=0.94)&&overlap>=0.5;
+};
+const mergeDuplicateMetadata=(kept,duplicate)=>{
+  const sources=String(kept.source||'').split(' | Also from: ').filter(Boolean);
+  if(duplicate.source&&!sources.includes(duplicate.source)){sources.push(duplicate.source);kept.source=sources.join(' | Also from: ');}
+  if(!kept.explanation&&duplicate.explanation){kept.explanation=duplicate.explanation;}
+  else if(duplicate.explanation&&normalizeQuestionText(duplicate.explanation)!==normalizeQuestionText(kept.explanation)){
+    kept.alternateExplanations=kept.alternateExplanations||[];
+    const exists=kept.alternateExplanations.some(note=>note.source===duplicate.source&&normalizeQuestionText(note.explanation)===normalizeQuestionText(duplicate.explanation));
+    if(!exists)kept.alternateExplanations.push({source:duplicate.source||'Additional source',explanation:duplicate.explanation,sourceVersion:duplicate.sourceVersion||'',explanationStatus:duplicate.explanationStatus||''});
+  }
+};
+const uniqueQuestions=[];
+for(const question of bank.questions){
+  const kept=uniqueQuestions.find(candidate=>isDuplicateQuestion(candidate,question));
+  if(kept){duplicateAliases[question.id]=kept.id;mergeDuplicateMetadata(kept,question);}
+  else uniqueQuestions.push(question);
+}
+bank.questions=uniqueQuestions;
+bank.sections.forEach(section=>{section.count=bank.questions.filter(question=>question.subject===section.slug).length;});
+bank.totalValid=bank.questions.length;
+bank.totalCount=bank.questions.length;
+const deduplicatedCount=Object.keys(duplicateAliases).length;
+const integrityNotice=document.querySelector('.notice');
+if(integrityNotice&&deduplicatedCount)integrityNotice.textContent=deduplicatedCount+' duplicate question variants consolidated; source labels and alternate explanations are preserved. '+integrityNotice.textContent;
 const $=id=>document.getElementById(id);
 const subjectSelect=$('subjectSelect'), topicSelect=$('topicSelect'), searchBox=$('searchBox'), card=$('questionCard');
 const params=new URLSearchParams(location.search);
@@ -68,6 +146,8 @@ const initial=params.get('subject');
 let selectedSubject=validSlugs.has(initial)?initial:'all', selectedTopic='all', filterMode='all', search='', index=0;
 let state={answers:{},bookmarks:[],positions:{},autoNext:true};
 try{const saved=JSON.parse(localStorage.getItem('jvvnl-source-bank-progress-v1')||'null');if(saved&&typeof saved==='object'){state.answers=saved.answers||{};state.bookmarks=Array.isArray(saved.bookmarks)?saved.bookmarks:[];state.positions=saved.positions&&typeof saved.positions==='object'?saved.positions:{};if(typeof saved.autoNext==='boolean')state.autoNext=saved.autoNext;}}catch(e){}
+Object.entries(duplicateAliases).forEach(([duplicateId,canonicalId])=>{if(state.answers[canonicalId]===undefined&&state.answers[duplicateId]!==undefined)state.answers[canonicalId]=state.answers[duplicateId];});
+state.bookmarks=[...new Set((state.bookmarks||[]).map(id=>duplicateAliases[id]||id))];
 const positionKey=()=>selectedSubject+'|'+selectedTopic+'|'+filterMode+'|'+search;
 index=Number.isInteger(state.positions[positionKey()])?Math.max(0,state.positions[positionKey()]):0;
 const save=()=>{try{state.positions=state.positions||{};state.positions[positionKey()]=index;localStorage.setItem('jvvnl-source-bank-progress-v1',JSON.stringify(state));}catch(e){}};
@@ -80,6 +160,7 @@ const refreshTopics=()=>{const prev=selectedTopic;const topics=[...new Set(bank.
 refreshTopics();
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const formatExplanation=s=>esc(s).replace(/\\\(/g,'').replace(/\\\)/g,'').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+const formatAlternateExplanations=q=>(q.alternateExplanations||[]).map(note=>'<details class="alt-source-note"><summary>Additional source explanation · '+esc(note.source||'Source')+'</summary><div>'+formatExplanation(note.explanation||'')+'</div></details>').join('');
 const questionsForView=()=>bank.questions.filter(q=>{
 if(selectedSubject!=='all'&&q.subject!==selectedSubject)return false;
 if(selectedTopic!=='all'&&q.topic!==selectedTopic)return false;
@@ -98,17 +179,33 @@ $('totalCount').textContent=all.length;$('answeredCount').textContent=answered.l
 $('sideAnswered').textContent=answered.length+' / '+all.length;$('sideCorrect').textContent=correct;$('sideWrong').textContent=wrong;$('progressFill').style.width=(answered.length/all.length*100)+'%';
 $('subjectCounts').innerHTML=bank.sections.map(s=>'<div class="side-row"><span>'+esc(s.name)+'</span><b>'+s.count+'</b></div>').join('');
 }
+function finishView(list){
+cancelAutoAdvance();
+const view=list||questionsForView();
+const answered=view.filter(q=>state.answers[q.id]!==undefined);
+const correct=answered.filter(q=>state.answers[q.id]===q.answer).length;
+const wrong=answered.length-correct;
+const unanswered=view.length-answered.length;
+const accuracy=answered.length?Math.round(correct/answered.length*100):0;
+card.innerHTML='<div class="completion-panel"><div class="eyebrow">PRACTICE COMPLETE</div><h2>View finished</h2><p>You reached the end of this question set. Your answers and bookmarks are still saved.</p><div class="completion-stats"><div class="completion-stat"><strong>'+view.length+'</strong><span>Questions in this view</span></div><div class="completion-stat"><strong>'+answered.length+'</strong><span>Answered</span></div><div class="completion-stat"><strong>'+correct+'</strong><span>Correct · '+wrong+' incorrect</span></div><div class="completion-stat"><strong>'+unanswered+'</strong><span>Unanswered</span></div></div><p><strong>Accuracy:</strong> '+accuracy+'% of answered questions.</p><div class="completion-actions">'+(wrong?'<button class="btn" id="reviewWrongBtn" type="button">Review wrong answers ('+wrong+')</button>':'')+(unanswered?'<button class="btn" id="reviewUnansweredBtn" type="button">Review unanswered ('+unanswered+')</button>':'')+'<button class="btn" id="returnQuestionsBtn" type="button">Back to this set</button><button class="btn primary" id="allSubjectsBtn" type="button">All subjects</button></div></div>';
+const wrongBtn=$('reviewWrongBtn');
+if(wrongBtn)wrongBtn.onclick=()=>{filterMode='wrong';index=0;document.querySelectorAll('.chip').forEach(button=>button.classList.toggle('active',button.dataset.filter===filterMode));render();save();card.scrollIntoView({behavior:'smooth',block:'start'});};
+const unansweredBtn=$('reviewUnansweredBtn');
+if(unansweredBtn)unansweredBtn.onclick=()=>{filterMode='unanswered';index=0;document.querySelectorAll('.chip').forEach(button=>button.classList.toggle('active',button.dataset.filter===filterMode));render();save();card.scrollIntoView({behavior:'smooth',block:'start'});};
+$('returnQuestionsBtn').onclick=()=>{index=0;render();save();card.scrollIntoView({behavior:'smooth',block:'start'});};
+$('allSubjectsBtn').onclick=()=>{selectedSubject='all';selectedTopic='all';filterMode='all';search='';index=0;subjectSelect.value='all';refreshTopics();topicSelect.value='all';searchBox.value='';document.querySelectorAll('.chip').forEach(button=>button.classList.toggle('active',button.dataset.filter==='all'));render();save();card.scrollIntoView({behavior:'smooth',block:'start'});};
+}
 function render(){
 const list=questionsForView();if(index>=list.length)index=Math.max(0,list.length-1);
 if(!list.length){card.innerHTML='<div class="empty"><strong>No questions in this view</strong>Try another subject/filter, or clear your search.</div><div class="actions"><button class="btn" id="clearView">Show all questions</button></div>';const b=$('clearView');if(b)b.onclick=()=>{filterMode='all';search='';searchBox.value='';document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));index=0;render();};updateStats();return;}
 const q=list[index], chosen=state.answers[q.id], done=chosen!==undefined, marked=state.bookmarks.includes(q.id);
 let options=q.options.map((opt,i)=>{let cls='option';if(done&&i===q.answer)cls+=' correct';else if(done&&i===chosen&&chosen!==q.answer)cls+=' incorrect';return '<button type="button" class="'+cls+'" data-option="'+i+'" '+(done?'disabled':'')+'><span class="letter">'+String.fromCharCode(65+i)+'</span><span>'+esc(opt)+'</span></button>';}).join('');
-let feedback='';if(done){const good=chosen===q.answer;feedback='<div class="feedback '+(good?'good':'bad')+'"><strong>'+(good?'Correct!':'Not quite.')+'</strong> Correct answer: <b>'+String.fromCharCode(65+q.answer)+'</b>. '+formatExplanation(q.explanation)+'</div>';}
+let feedback='';if(done){const good=chosen===q.answer;feedback='<div class="feedback '+(good?'good':'bad')+'"><strong>'+(good?'Correct!':'Not quite.')+'</strong> Correct answer: <b>'+String.fromCharCode(65+q.answer)+'</b>. '+formatExplanation(q.explanation)+'</div>'+formatAlternateExplanations(q);}
 card.innerHTML='<div class="qmeta"><span class="tag">'+esc(q.subjectName)+'</span>'+(q.topic?'<span class="tag">'+esc(q.topic)+'</span>':'')+(q.auditStatus==='corrected-key'?'<span class="tag" style="background:#e9f8ef;color:#147647">Key independently checked</span>':'')+(q.auditStatus==='needs-review'?'<span class="tag" style="background:#fff0f1;color:#b42332">Needs review</span>':'')+'<span class="qnum">Question '+(index+1)+' of '+list.length+' in this view</span></div>'+(q.auditNote?'<div class="feedback '+(q.auditStatus==='needs-review'?'bad':'good')+'"><strong>Audit note:</strong> '+esc(q.auditNote)+'</div>':'')+'<p class="question">'+esc(q.question)+'</p><div class="options">'+options+'</div>'+feedback+'<div class="source"><b>Source:</b> '+esc(q.source)+' · Question reference: '+q.sourceNumber+'</div><div class="actions"><button class="btn '+(marked?'bookmarked':'')+'" id="bookmarkBtn" type="button">'+(marked?'★ Bookmarked':'☆ Bookmark')+'</button><button class="btn" id="prevBtn" type="button" '+(index===0?'disabled':'')+'>← Previous</button><button class="btn primary" id="nextBtn" type="button">'+(index===list.length-1?'Finish view':'Next question →')+'</button></div>';
 card.querySelectorAll('[data-option]').forEach(b=>b.addEventListener('click',()=>{cancelAutoAdvance();state.answers[q.id]=Number(b.dataset.option);save();render();scheduleAutoAdvance(q.id);$('resumeNote').textContent=state.autoNext?'Answer saved · next question in 2.5 seconds.':'Answer saved · use Next question when ready.';}));
 $('bookmarkBtn').onclick=()=>{if(state.bookmarks.includes(q.id))state.bookmarks=state.bookmarks.filter(x=>x!==q.id);else state.bookmarks.push(q.id);save();render();};
 $('prevBtn').onclick=()=>{cancelAutoAdvance();index=Math.max(0,index-1);save();render();card.scrollIntoView({behavior:'smooth',block:'start'});};
-$('nextBtn').onclick=()=>{cancelAutoAdvance();if(index<list.length-1){index++;save();render();card.scrollIntoView({behavior:'smooth',block:'start'});}else{$('resumeNote').textContent='You reached the end of this view. Change filters or choose another subject to continue.';card.scrollIntoView({behavior:'smooth',block:'start'});}};
+$('nextBtn').onclick=()=>{cancelAutoAdvance();if(index<list.length-1){index++;save();render();card.scrollIntoView({behavior:'smooth',block:'start'});}else{finishView(list);card.scrollIntoView({behavior:'smooth',block:'start'});}};
 updateStats();
 }
 subjectSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedSubject=subjectSelect.value;selectedTopic='all';refreshTopics();index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
