@@ -72,6 +72,8 @@ nav .wrap{min-height:64px}
 const bank=window.JVVNL_BANK;
 if(!bank||!Array.isArray(bank.questions)){document.getElementById('questionCard').textContent='Question bank could not be loaded. Please refresh the page.';return;}
 const duplicateAliases=Object.create(null);
+const duplicateOptionMaps=Object.create(null);
+const duplicateCorrectAnswers=Object.create(null);
 const normalizeQuestionText=value=>String(value??'').toLowerCase().normalize('NFKC').replace(/&/g,' and ').replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
 const normalizeOptionText=value=>String(value??'').toLowerCase().normalize('NFKC').replace(/[−–—]/g,'-').replace(/&/g,' and ').replace(/(\d)\s*\.\s*(\d)/g,'$1.$2').replace(/[^\p{L}\p{N}+\-×÷=.%₹]+/gu,' ').trim().replace(/\s+/g,' ');
 const correctChoice=q=>normalizeOptionText(Array.isArray(q.options)?q.options[q.answer]:'');
@@ -128,7 +130,7 @@ const mergeDuplicateMetadata=(kept,duplicate)=>{
 const uniqueQuestions=[];
 for(const question of bank.questions){
   const kept=uniqueQuestions.find(candidate=>isDuplicateQuestion(candidate,question));
-  if(kept){duplicateAliases[question.id]=kept.id;mergeDuplicateMetadata(kept,question);}
+  if(kept){duplicateAliases[question.id]=kept.id;duplicateOptionMaps[question.id]=(question.options||[]).map(option=>(kept.options||[]).findIndex(candidate=>normalizeOptionText(candidate)===normalizeOptionText(option)));duplicateCorrectAnswers[question.id]={duplicate:question.answer,canonical:kept.answer};mergeDuplicateMetadata(kept,question);}
   else uniqueQuestions.push(question);
 }
 bank.questions=uniqueQuestions;
@@ -146,7 +148,14 @@ const initial=params.get('subject');
 let selectedSubject=validSlugs.has(initial)?initial:'all', selectedTopic='all', filterMode='all', search='', index=0;
 let state={answers:{},bookmarks:[],positions:{},autoNext:true};
 try{const saved=JSON.parse(localStorage.getItem('jvvnl-source-bank-progress-v1')||'null');if(saved&&typeof saved==='object'){state.answers=saved.answers||{};state.bookmarks=Array.isArray(saved.bookmarks)?saved.bookmarks:[];state.positions=saved.positions&&typeof saved.positions==='object'?saved.positions:{};if(typeof saved.autoNext==='boolean')state.autoNext=saved.autoNext;}}catch(e){}
-Object.entries(duplicateAliases).forEach(([duplicateId,canonicalId])=>{if(state.answers[canonicalId]===undefined&&state.answers[duplicateId]!==undefined)state.answers[canonicalId]=state.answers[duplicateId];});
+Object.entries(duplicateAliases).forEach(([duplicateId,canonicalId])=>{
+  if(state.answers[canonicalId]!==undefined||state.answers[duplicateId]===undefined)return;
+  const oldIndex=Number(state.answers[duplicateId]);
+  const optionMap=duplicateOptionMaps[duplicateId]||[];
+  let mappedIndex=Number.isInteger(oldIndex)?optionMap[oldIndex]:-1;
+  if(mappedIndex<0&&oldIndex===duplicateCorrectAnswers[duplicateId]?.duplicate)mappedIndex=duplicateCorrectAnswers[duplicateId].canonical;
+  if(Number.isInteger(mappedIndex)&&mappedIndex>=0)state.answers[canonicalId]=mappedIndex;
+});
 state.bookmarks=[...new Set((state.bookmarks||[]).map(id=>duplicateAliases[id]||id))];
 const positionKey=()=>selectedSubject+'|'+selectedTopic+'|'+filterMode+'|'+search;
 index=Number.isInteger(state.positions[positionKey()])?Math.max(0,state.positions[positionKey()]):0;
