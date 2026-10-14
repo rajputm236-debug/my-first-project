@@ -66,80 +66,15 @@ nav .wrap{min-height:64px}
 </main>
 <footer class="footer"><div class="wrap"><span>JVVNL Prep • Independent practice project</span><span><a href="./">Back to home</a> · <a href="./cost-accounting.html">Open 700-MCQ Cost Accounting</a></span></div></footer>
 <script src="./question-bank.js"></script>
-<script src="./corporate-accounting-404.js"></script>
 <script>
 (function(){
 const bank=window.JVVNL_BANK;
 if(!bank||!Array.isArray(bank.questions)){document.getElementById('questionCard').textContent='Question bank could not be loaded. Please refresh the page.';return;}
-const duplicateAliases=Object.create(null);
-const duplicateOptionMaps=Object.create(null);
-const duplicateCorrectAnswers=Object.create(null);
-const normalizeQuestionText=value=>String(value??'').toLowerCase().normalize('NFKC').replace(/&/g,' and ').replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
-const normalizeOptionText=value=>String(value??'').toLowerCase().normalize('NFKC').replace(/[−–—]/g,'-').replace(/&/g,' and ').replace(/(\d)\s*\.\s*(\d)/g,'$1.$2').replace(/[^\p{L}\p{N}+\-×÷=.%₹]+/gu,' ').trim().replace(/\s+/g,' ');
-const correctChoice=q=>normalizeOptionText(Array.isArray(q.options)?q.options[q.answer]:'');
-const optionOverlap=(a,b)=>{const left=new Set((a.options||[]).map(normalizeOptionText)),right=new Set((b.options||[]).map(normalizeOptionText));let shared=0;left.forEach(v=>{if(right.has(v))shared++;});return shared/Math.max(left.size,right.size,1);};
-const pairKey=(a,b)=>[a,b].sort().join('|');
-const manualDuplicatePairs=new Set([
-  ['original-HI-02','original-extra-092'],
-  ['original-extra-069','auditing-deep-44'],
-  ['original-extra-016','corp404-80'],
-  ['pyq-283','corp404-377'],
-  ['pyq-302','corp404-379'],
-  ['pyq-372','corp404-404'],
-  ['pyq-388','corp404-373'],
-  ['pyq-42','pyq-57'],
-  ['pyq-65','pyq-96'],
-  ['pyq-579','pyq-595']
-].map(pair=>pairKey(pair[0],pair[1])));
-const genericQuestionStems=new Set([
-  'which of the following statements is true',
-  'which of the following statements is correct',
-  'which of the following statements are correct',
-  'which pair is correctly matched',
-  'match list i with list ii',
-  'which of the following is correct',
-  'which of the following statement is correct'
-]);
-const stopWords=new Set('which what of the the is are a an in on for from to by be been being that this these those following one it their them or and with as when where who how does do did was were will can may must not'.split(' '));
-const questionTokens=value=>new Set(normalizeQuestionText(value).split(' ').filter(word=>word.length>2&&!stopWords.has(word)));
-const isDuplicateQuestion=(a,b)=>{
-  if(a.subject!==b.subject)return false;
-  if(manualDuplicatePairs.has(pairKey(a.id,b.id)))return true;
-  const left=normalizeQuestionText(a.question),right=normalizeQuestionText(b.question);
-  const leftAnswer=correctChoice(a),rightAnswer=correctChoice(b);
-  if(!leftAnswer||!rightAnswer||leftAnswer!==rightAnswer)return false;
-  const overlap=optionOverlap(a,b);
-  if(left===right)return genericQuestionStems.has(left)?overlap>=0.75:true;
-  if(Math.min(left.length,right.length)<60||/read the given passage|based on the following passage/.test(left)||/read the given passage|based on the following passage/.test(right))return false;
-  const leftTokens=questionTokens(left),rightTokens=questionTokens(right);
-  let shared=0;leftTokens.forEach(word=>{if(rightTokens.has(word))shared++;});
-  const jaccard=shared/(leftTokens.size+rightTokens.size-shared);
-  const containment=shared/Math.max(1,Math.min(leftTokens.size,rightTokens.size));
-  return (jaccard>=0.88||containment>=0.94)&&overlap>=0.5;
-};
-const mergeDuplicateMetadata=(kept,duplicate)=>{
-  const sources=String(kept.source||'').split(' | Also from: ').filter(Boolean);
-  if(duplicate.source&&!sources.includes(duplicate.source)){sources.push(duplicate.source);kept.source=sources.join(' | Also from: ');}
-  if(!kept.explanation&&duplicate.explanation){kept.explanation=duplicate.explanation;}
-  else if(duplicate.explanation&&normalizeQuestionText(duplicate.explanation)!==normalizeQuestionText(kept.explanation)){
-    kept.alternateExplanations=kept.alternateExplanations||[];
-    const exists=kept.alternateExplanations.some(note=>note.source===duplicate.source&&normalizeQuestionText(note.explanation)===normalizeQuestionText(duplicate.explanation));
-    if(!exists)kept.alternateExplanations.push({source:duplicate.source||'Additional source',explanation:duplicate.explanation,sourceVersion:duplicate.sourceVersion||'',explanationStatus:duplicate.explanationStatus||''});
-  }
-};
-const uniqueQuestions=[];
-for(const question of bank.questions){
-  const kept=uniqueQuestions.find(candidate=>isDuplicateQuestion(candidate,question));
-  if(kept){duplicateAliases[question.id]=kept.id;duplicateOptionMaps[question.id]=(question.options||[]).map(option=>(kept.options||[]).findIndex(candidate=>normalizeOptionText(candidate)===normalizeOptionText(option)));duplicateCorrectAnswers[question.id]={duplicate:question.answer,canonical:kept.answer};mergeDuplicateMetadata(kept,question);}
-  else uniqueQuestions.push(question);
-}
-bank.questions=uniqueQuestions;
-bank.sections.forEach(section=>{section.count=bank.questions.filter(question=>question.subject===section.slug).length;});
-bank.totalValid=bank.questions.length;
-bank.totalCount=bank.questions.length;
+const duplicateAliases=bank.duplicateAliases||Object.create(null);
+const duplicateOptionMaps=bank.duplicateOptionMaps||Object.create(null);
+const duplicateCorrectAnswers=bank.duplicateCorrectAnswers||Object.create(null);
 const deduplicatedCount=Object.keys(duplicateAliases).length;
 const integrityNotice=document.querySelector('.notice');
-
 const $=id=>document.getElementById(id);
 const subjectSelect=$('subjectSelect'), topicSelect=$('topicSelect'), searchBox=$('searchBox'), card=$('questionCard');
 const params=new URLSearchParams(location.search);
