@@ -148,6 +148,7 @@ const initial=params.get('subject');
 let selectedSubject=validSlugs.has(initial)?initial:'all', selectedTopic='all', filterMode='all', questionType=['core','pyq'].includes(params.get('type'))?params.get('type'):'all', search='', index=0;
 let state={answers:{},bookmarks:[],positions:{},autoNext:false};
 try{const saved=JSON.parse(localStorage.getItem('jvvnl-source-bank-progress-v1')||'null');if(saved&&typeof saved==='object'){state.answers=saved.answers||{};state.bookmarks=Array.isArray(saved.bookmarks)?saved.bookmarks:[];state.positions=saved.positions&&typeof saved.positions==='object'?saved.positions:{};if(typeof saved.autoNext==='boolean')state.autoNext=saved.autoNext;}}catch(e){}
+if(state.optionOrderVersion!==1){const maps=bank.optionOrderMigrationV1||{};Object.entries(state.answers).forEach(([id,selected])=>{const map=maps[id],oldIndex=Number(selected);if(Array.isArray(map)&&Number.isInteger(oldIndex)&&map[oldIndex]!==undefined)state.answers[id]=map[oldIndex];});state.optionOrderVersion=1;}
 Object.entries(duplicateAliases).forEach(([duplicateId,canonicalId])=>{
   if(state.answers[canonicalId]!==undefined||state.answers[duplicateId]===undefined)return;
   const oldIndex=Number(state.answers[duplicateId]);
