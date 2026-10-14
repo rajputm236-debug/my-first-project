@@ -6,7 +6,7 @@
   for (const q of additions) {
     const match = topicRanges.find(([from, to]) => q.sourceNumber >= from && q.sourceNumber <= to);
     if (match) q.topic = match[2];
-    if (q.source) q.source = String(q.source).replace(/\\s+/g, ' ').trim();
+    if (q.source) q.source = String(q.source).replace(/\s+/g, ' ').trim();
   }
   if (!window.JVVNL_BANK || !Array.isArray(window.JVVNL_BANK.questions)) return;
   const bank = window.JVVNL_BANK;
