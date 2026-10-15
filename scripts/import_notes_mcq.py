@@ -23,6 +23,8 @@ def subject_of(batch, q):
     if subject == 'gst': return 'gst'
     if 'audit' in subject: return 'auditing'
     raise ValueError('Unmapped subject: '+batch['subject'])
+def memberships(q): return [q['subject'], *q.get('secondarySubjects', [])]
+def is_pyq(q): return str(q['id']).lower().startswith('pyq-') or 'pyq' in q['subject'].lower() or bool(re.search(r'\bpyq\b',q.get('source',''),re.I))
 def normalize(text): return re.sub(r'[^a-z0-9]', '', text.lower())
 def fingerprint(q, values): return (normalize(q), tuple(sorted(normalize(v) for v in values)))
 def replace_json(text, marker, data):
@@ -101,20 +103,23 @@ def main():
         replacements={q['id']:q for q in new};merged=[replacements.pop(q['id'],q) for q in old]+list(replacements.values());bank['questions']=merged
         assert len({q['id'] for q in merged})==len(merged)
         for sec in bank['sections']:
-            sec['count']=sum(q['subject']==sec['slug'] for q in merged)
+            sec['count']=sum(sec['slug'] in memberships(q) for q in merged)
             note_count=sum(q['subject']==sec['slug'] and 'batchNumber' in q for q in merged)
             if note_count:sec['notesPracticeCount']=note_count
         total=len(merged);bank['totalCount']=bank['totalValid']=total
         bank['notesPracticeCount']=sum('batchNumber' in q for q in merged)
         path.write_text('window.JVVNL_BANK = '+json.dumps(bank,ensure_ascii=False,separators=(',',':'))+';\n')
         # Derive all public counts from actual records, never from raw source totals.
-        counts=collections.Counter(q['subject'] for q in merged);notes=collections.Counter(q['subject'] for q in merged if 'batchNumber' in q)
+        counts=collections.Counter(slug for q in merged for slug in memberships(q));notes=collections.Counter(q['subject'] for q in merged if 'batchNumber' in q)
         home=re.sub(r'\d[\d,]* practice questions',f'{total:,} practice questions',home)
         def update_card(m):
             card=m[0]
             if '<h3>Auditing &amp; Cost Audit</h3>' in card or '<h3>Auditing & Cost Audit</h3>' in card:
-                card=re.sub(r'<p>Auditing questions.*?</p>',f'<p>Auditing questions in one place, with answers and explanations. 476 existing unique questions plus {notes["auditing"]} chapter-wise original practice MCQs from the notes batches.</p>',card)
+                card=re.sub(r'<p>Auditing questions.*?</p>',f'<p>Auditing questions in one place, with answers and explanations. {counts["auditing"]-notes["auditing"]} existing unique questions plus {notes["auditing"]} chapter-wise original practice MCQs from the notes batches.</p>',card)
                 card=re.sub(r'\d+ Auditing MCQs · \d+ new notes practice',f'{counts["auditing"]} Auditing MCQs · {notes["auditing"]} new notes practice',card)
+                pyqs=sum('auditing' in memberships(q) and is_pyq(q) for q in merged)
+                card=re.sub(r'\d+ PYQs',f'{pyqs} PYQs',card,count=1)
+                card=re.sub(r'(>PYQs \()\d+(\) →)',lambda m:m[1]+str(pyqs)+m[2],card)
             if '<h3>Income Tax &amp; GST</h3>' in card or '<h3>Income Tax & GST</h3>' in card:
                 card=re.sub(r'\d+ unique GST MCQs',f'{counts["gst-taxation"]} unique GST MCQs',card)
                 card=re.sub(r'\d+ unique Income Tax MCQs',f'{counts["income-tax"]} unique Income Tax MCQs',card)
