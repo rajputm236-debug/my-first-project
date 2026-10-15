@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "notes_total": 1710,
-  "shared_practice_total": 2547,
+  "notes_total": 1734,
+  "shared_practice_total": 2571,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
-    "Auditing": 72,
+    "Auditing": 96,
     "Costing": 418,
     "Income Tax": 160,
     "GST": 144
@@ -292,6 +292,12 @@
       "subject": "Auditing",
       "questions": 24,
       "chapters": "AU7 Company Audit I / AU8 Company Audit II / AU9 Audit Report I"
+    },
+    {
+      "batch": 48,
+      "subject": "Auditing",
+      "questions": 24,
+      "chapters": "AU10 Audit Report II / AU11 Special Audit Areas / AU12 Audit of Different Entities"
     }
   ]
 }
