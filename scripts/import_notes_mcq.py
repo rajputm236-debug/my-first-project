@@ -76,6 +76,7 @@ def main():
             if '<h3>Accounting MCQ Practice</h3>' not in card:return card
             card=re.sub(r'\d+ questions',f'{len(new)} questions',card)
             card=re.sub(r'\d+ batches',f'{len(counts)} batches',card)
+            card=card.replace('Three uploaded Accounting MCQ batches',f'Accounting MCQ batches 1-{max(int(k[1:]) for k in counts)}')
             return card
         home=re.sub(r'<article\b.*?</article>',accounting_card,home,flags=re.S)
         summary={'subject':args.subject,'total':len(new),'source_rows':len(rows),'added':len(new)-len(old),'batch_counts':dict(batch_counts)}
