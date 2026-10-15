@@ -67,7 +67,7 @@ const STORE_KEY="jvvnl_cost_quiz_v1";
 const LETTERS=["A","B","C","D"];
 const $=id=>document.getElementById(id);
 let state={answers:{},bookmarks:[],notes:{},reports:[],attempts:[],lastQuestionId:1,theme:"light",lastMode:"all"};
-let session={ids:[],index:0,mode:"practice",selected:null,submitted:false,timer:null,timeLeft:0,startAt:0,attemptCorrect:0,attemptWrong:0,attemptedInSession:[],mockSubmitted:false,mockResponses:{},forceRetryId:null};
+let session={ids:[],index:0,mode:"practice",selected:null,submitted:false,timer:null,timeLeft:0,startAt:0,attemptCorrect:0,attemptWrong:0,attemptedInSession:[],mockSubmitted:false,mockResponses:{},draftResponses:{},forceRetryId:null};
 function clone(x){return JSON.parse(JSON.stringify(x))}
 function loadState(){try{const s=localStorage.getItem(STORE_KEY);if(s){const parsed=JSON.parse(s);if(parsed&&typeof parsed==="object")state={...state,...parsed};}}catch(e){toast("Browser storage is unavailable. Progress may not persist in this browser.");}}
 function saveState(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){toast("Could not save progress. Export a backup and check browser storage.");}}
@@ -91,7 +91,7 @@ function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&l
 function showOnly(which){$("dashboard").classList.toggle("hidden",which!=="dashboard");$("listPanel").classList.toggle("hidden",which!=="list");$("quizPanel").style.display=which==="quiz"?"block":"none";$("reportPanel").classList.toggle("hidden",which!=="report");}
 function startMode(mode,ids,chapterId){
  if(!ids||!ids.length){toast("No questions found for this selection.");return;}
- clearInterval(session.timer);session={ids:ids.slice(),index:0,mode,selected:null,submitted:false,timer:null,timeLeft:0,startAt:Date.now(),attemptCorrect:0,attemptWrong:0,attemptedInSession:[],mockSubmitted:false,mockResponses:{},forceRetryId:null};
+ clearInterval(session.timer);session={ids:ids.slice(),index:0,mode,selected:null,submitted:false,timer:null,timeLeft:0,startAt:Date.now(),attemptCorrect:0,attemptWrong:0,attemptedInSession:[],mockSubmitted:false,mockResponses:{},draftResponses:{},forceRetryId:null};
  state.lastMode=mode;saveState();showOnly("quiz");renderQuestion();
 }
 function currentQ(){return getQ(session.ids[session.index]);}
@@ -113,7 +113,7 @@ function renderQuestion(){
  $("bookmarkBtn").textContent=state.bookmarks.includes(q.id)?"★ Bookmarked":"☆ Bookmark";$("bookmarkBtn").classList.toggle("bookmark-on",state.bookmarks.includes(q.id));
  $("options").replaceChildren();
  const existing=latestAnswer(q.id);
- const storedSelection=session.mode==="mock"?session.mockResponses[String(q.id)]:((session.forceRetryId===q.id)?null:(existing&&existing.selected));
+ const storedSelection=session.mode==="mock"?session.mockResponses[String(q.id)]:((session.forceRetryId===q.id)?session.draftResponses[String(q.id)]:(existing&&existing.selected)||session.draftResponses[String(q.id)]);
  LETTERS.forEach(letter=>{const opt=q.options.find(o=>o.letter===letter);const b=document.createElement("button");b.type="button";b.className="option";b.dataset.letter=letter;
  const mark=document.createElement("span");mark.className="letter";mark.textContent=letter;const txt=document.createElement("span");txt.className="opttext";txt.textContent=opt?opt.text:"[Missing option]";b.append(mark,txt);
  if(storedSelection===letter){b.classList.add("selected");session.selected=letter;}
@@ -128,9 +128,9 @@ function renderQuestion(){
 }
 function selectOption(letter){
  if(session.submitted&&session.mode!=="mock"){toast("This question is already answered. Use Retry to attempt it again.");return;}
- session.selected=letter;
- if(session.mode==="mock"){session.mockResponses[String(currentQ().id)]=letter;}
- $("options").querySelectorAll(".option").forEach(b=>{b.classList.toggle("selected",b.dataset.letter===letter);});
+ session.selected=session.selected===letter?null:letter;
+ if(session.mode==="mock"){if(session.selected)session.mockResponses[String(currentQ().id)]=session.selected;else delete session.mockResponses[String(currentQ().id)];}else{if(session.selected)session.draftResponses[String(currentQ().id)]=session.selected;else delete session.draftResponses[String(currentQ().id)];}
+ $("options").querySelectorAll(".option").forEach(b=>{b.classList.toggle("selected",b.dataset.letter===session.selected);});
 }
 function submitAnswer(){
  const q=currentQ();if(!q)return;if(!session.selected){toast("Select an option first.");return;}
@@ -152,7 +152,7 @@ function showFeedback(q,rec){
  const exp=document.createElement("div");exp.className="explanation";const label=document.createElement("strong");label.textContent="Why this answer is correct";exp.append(label,document.createTextNode("\n"+(q.explanation||"No explanation was provided for this question; flag it for review.")));
  f.append(title,selected,correct,exp);
 }
-function retryQuestion(){session.submitted=false;session.selected=null;session.forceRetryId=currentQ().id;renderQuestion();}
+function retryQuestion(){session.submitted=false;session.selected=null;delete session.draftResponses[String(currentQ().id)];session.forceRetryId=currentQ().id;renderQuestion();}
 function nextQuestion(){
  if(session.mode==="mock"&&session.selected)session.mockResponses[String(currentQ().id)]=session.selected;
  if(session.index<session.ids.length-1){session.index++;renderQuestion();}else finishSession();
