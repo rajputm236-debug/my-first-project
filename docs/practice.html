@@ -50,6 +50,11 @@ nav .wrap{min-height:64px}
 .alt-source-note{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
 .alt-source-note summary{cursor:pointer;font-weight:600}
 @media(max-width:600px){.completion-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.completion-actions .btn{flex:1 1 100%}}
+
+.study-strip{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:14px 0;padding:16px 18px;background:#edf4ff;border:1px solid #d5e4fa;border-radius:15px}.study-label{font-size:10px;letter-spacing:.1em;font-weight:800;color:#315c94}.study-strip p{margin:4px 0 0;font-size:14px;font-weight:650;color:var(--navy)}.toolbar{grid-template-columns:repeat(3,minmax(0,1fr))}.field{min-width:0}.field select{min-width:0}.btn:focus-visible,.chip:focus-visible,.option:focus-visible,select:focus-visible{outline:3px solid #7badeb;outline-offset:2px}
+@media(max-width:700px){.toolbar{grid-template-columns:1fr 1fr}.study-strip{align-items:flex-start;padding:13px}.study-strip .btn{font-size:12px;padding:10px;flex-shrink:0}.filters{display:grid;grid-template-columns:1fr 1fr;overflow:visible;gap:8px}.chip{min-height:44px;white-space:normal}.study-strip p{font-size:13px}}@media(max-width:380px){.toolbar{grid-template-columns:1fr}.study-strip{flex-direction:column;gap:9px}.study-strip .btn{align-self:flex-end}}
+@media(max-width:600px){.mobile-filters>summary{display:flex}.mobile-filters>summary span{max-width:160px}.hero{padding:18px 0 14px}}
+.toolbar .field:last-child{grid-column:span 2}@media(max-width:380px){.toolbar .field:last-child{grid-column:auto}}
 </style>
 </head>
 <body>
@@ -60,9 +65,10 @@ nav .wrap{min-height:64px}
 <div class="stats"><div class="stat"><strong id="totalCount">2,547</strong><span>Unique practice MCQs</span></div><div class="stat"><strong id="answeredCount">0</strong><span>Answered on this device</span></div><div class="stat"><strong id="accuracyCount">Answer 10 questions to see accuracy</strong><span>Accuracy</span></div><div class="stat"><strong id="bookmarkCount">0</strong><span>Bookmarked for revision</span></div></div>
 <details id="mobileFilters" class="mobile-filters" open>
 <summary>Filter questions <span>Subject · topic · question set · search</span></summary>
-<div class="toolbar"><div class="field"><label for="subjectSelect">SUBJECT</label><select id="subjectSelect"><option value="all">All subjects</option></select></div><div class="field"><label for="topicSelect">TOPIC</label><select id="topicSelect"><option value="all">All topics</option></select></div><div class="field"><label for="questionTypeSelect">QUESTION SET</label><select id="questionTypeSelect"><option value="all">All questions</option><option value="core">Core MCQ</option><option value="pyq">PYQs (previous year questions)</option></select></div><div class="field"><label for="searchBox">SEARCH QUESTIONS</label><input id="searchBox" type="search" placeholder="Search questions…"></div></div>
+<div class="toolbar"><div class="field"><label for="subjectSelect">SUBJECT</label><select id="subjectSelect"><option value="all">All subjects</option></select></div><div class="field"><label for="topicSelect">TOPIC</label><select id="topicSelect"><option value="all">All topics</option></select></div><div class="field"><label for="questionTypeSelect">QUESTION SET</label><select id="questionTypeSelect"><option value="all">All questions</option><option value="core">Core MCQ</option><option value="pyq">PYQs (previous year questions)</option></select></div><div class="field"><label for="batchSelect">BATCH / SOURCE BANK</label><select id="batchSelect"><option value="all">All batches and source banks</option></select></div><div class="field"><label for="searchBox">SEARCH QUESTIONS</label><input id="searchBox" type="search" placeholder="Search questions…"></div></div>
 <div class="filters" id="filters"><button class="chip active" data-filter="all">All answer statuses</button><button class="chip" data-filter="unanswered">Unanswered</button><button class="chip" data-filter="wrong">Wrong answers</button><button class="chip" data-filter="bookmarked">Bookmarks ★</button></div>
 </details>
+<div class="study-strip"><div><span class="study-label">YOUR CURRENT VIEW</span><p id="viewSummary" aria-live="polite"></p></div><button class="btn" id="clearFiltersBtn" type="button">Clear filters</button></div>
 <div class="quiz-preferences"><label class="auto-next"><input type="checkbox" id="autoNextToggle"> Auto-next after answer <span>· 2.5 seconds</span></label><span id="resumeNote" aria-live="polite">Progress saves on this device.</span></div>
 <details class="integrity-details"><summary>Data source &amp; integrity ⓘ</summary><div class="notice">This bank combines source-attributed exam questions with clearly labelled original practice. A small number of source records had incomplete or ambiguous question/options formatting and were not reconstructed by guessing. Source exam/year labels are retained where available. Questions with independently corrected keys or unresolved concerns are marked on the question card. Some older law/tax questions reflect the exam year shown in the source tag.</div></details>
 <div class="layout"><section class="question-card" id="questionCard" aria-live="polite"></section><aside class="side"><div class="side-card"><h3>Your progress</h3><p>Export a backup before switching browsers or clearing site data.</p><div class="progressbar"><span id="progressFill"></span></div><div class="side-row"><span>Answered</span><b id="sideAnswered">0 / 2,547</b></div><div class="side-row"><span>Correct</span><b id="sideCorrect">0</b></div><div class="side-row"><span>Incorrect</span><b id="sideWrong">0</b></div></div><div class="side-card"><h3>Subject counts</h3><div id="subjectCounts"></div></div><div class="side-card"><h3>Keep in mind</h3><p>Saved progress stays in the same browser profile. It will not automatically sync to another phone or computer. Avoid clearing site data if you want to keep it.</p><button class="btn" id="exportBtn" type="button">Export my progress</button></div></aside></div>
@@ -84,7 +90,8 @@ const subjectSelect=$('subjectSelect'), topicSelect=$('topicSelect'), searchBox=
 const params=new URLSearchParams(location.search);
 const validSlugs=new Set(bank.sections.map(s=>s.slug));
 const initial=params.get('subject');
-let selectedSubject=validSlugs.has(initial)?initial:'all', selectedTopic='all', filterMode='all', questionType=['core','pyq'].includes(params.get('type'))?params.get('type'):'all', search='', index=0;
+let selectedBatch=params.get('batch')||'all';
+let selectedSubject=validSlugs.has(initial)?initial:'all', selectedTopic=params.get('topic')||'all', filterMode='all', questionType=['core','pyq'].includes(params.get('type'))?params.get('type'):'all', search='', index=0;
 let state={answers:{},bookmarks:[],positions:{},autoNext:false};
 try{const saved=JSON.parse(localStorage.getItem('jvvnl-source-bank-progress-v1')||'null');if(saved&&typeof saved==='object'){state.answers=saved.answers||{};state.bookmarks=Array.isArray(saved.bookmarks)?saved.bookmarks:[];state.positions=saved.positions&&typeof saved.positions==='object'?saved.positions:{};if(typeof saved.autoNext==='boolean')state.autoNext=saved.autoNext;}}catch(e){}
 if(state.optionOrderVersion!==1){const maps=bank.optionOrderMigrationV1||{};Object.entries(state.answers).forEach(([id,selected])=>{const map=maps[id],oldIndex=Number(selected);if(Array.isArray(map)&&Number.isInteger(oldIndex)&&map[oldIndex]!==undefined)state.answers[id]=map[oldIndex];});state.optionOrderVersion=1;}
@@ -97,14 +104,17 @@ Object.entries(duplicateAliases).forEach(([duplicateId,canonicalId])=>{
   if(Number.isInteger(mappedIndex)&&mappedIndex>=0)state.answers[canonicalId]=mappedIndex;
 });
 state.bookmarks=[...new Set((state.bookmarks||[]).map(id=>duplicateAliases[id]||id))];
-const positionKey=()=>selectedSubject+'|'+selectedTopic+'|'+filterMode+'|'+questionType+'|'+search;
+const positionKey=()=>selectedSubject+'|'+selectedTopic+'|'+filterMode+'|'+questionType+'|'+search+(selectedBatch==='all'?'':'|batch:'+selectedBatch);
 index=Number.isInteger(state.positions[positionKey()])?Math.max(0,state.positions[positionKey()]):0;
-const save=()=>{try{state.positions=state.positions||{};state.positions[positionKey()]=index;localStorage.setItem('jvvnl-source-bank-progress-v1',JSON.stringify(state));}catch(e){}};
+const save=()=>{try{state.positions=state.positions||{};state.positions[positionKey()]=index;localStorage.setItem('jvvnl-source-bank-progress-v1',JSON.stringify(state));const resumeList=questionsForView();const resumeQ=resumeList[index];if(resumeQ)localStorage.setItem('jvvnl-last-study-v1',JSON.stringify({area:'practice',subject:selectedSubject,batch:selectedBatch,topic:selectedTopic,questionId:resumeQ.id,title:resumeQ.subjectName,updatedAt:new Date().toISOString()}));}catch(e){}};
 let advanceTimer=null;
 const cancelAutoAdvance=()=>{if(advanceTimer!==null){clearTimeout(advanceTimer);advanceTimer=null;}};
 const scheduleAutoAdvance=qid=>{cancelAutoAdvance();if(!state.autoNext)return;advanceTimer=setTimeout(()=>{const list=questionsForView();if(list[index]&&list[index].id===qid&&state.answers[qid]!==undefined&&index<list.length-1){index++;save();render();$('resumeNote').textContent='Moved to the next question automatically.';}advanceTimer=null;},2500);};
 bank.sections.forEach(s=>{s.count=bank.questions.filter(q=>belongs(q,s.slug)).length;const o=document.createElement('option');o.value=s.slug;o.textContent=s.name+' ('+s.count+')';subjectSelect.appendChild(o);});
 subjectSelect.value=selectedSubject;
+const batchSelect=$('batchSelect');
+const refreshBatches=()=>{const available=[...new Set(bank.questions.filter(q=>selectedSubject==='all'||belongs(q,selectedSubject)).map(q=>q.batchNumber).filter(Number.isInteger))].sort((a,b)=>a-b);batchSelect.innerHTML='<option value="all">All batches and source banks</option><option value="original">Earlier source banks</option>'+available.map(n=>'<option value="'+n+'">Notes Batch '+n+'</option>').join('');if(!['all','original',...available.map(String)].includes(selectedBatch))selectedBatch='all';batchSelect.value=selectedBatch;};
+refreshBatches();
 const refreshTopics=()=>{const prev=selectedTopic;const topics=[...new Set(bank.questions.filter(q=>selectedSubject==='all'||belongs(q,selectedSubject)).map(q=>q.topic).filter(Boolean))].sort((a,b)=>a.localeCompare(b));topicSelect.innerHTML='<option value="all">All topics</option>'+topics.map(t=>'<option value="'+String(t).replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'">'+String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</option>').join('');selectedTopic=topics.includes(prev)?prev:'all';topicSelect.value=selectedTopic;};
 refreshTopics();
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -114,19 +124,22 @@ const isPYQ=q=>/^pyq-/i.test(String(q.id||''))||/pyq/i.test(String(q.subject||''
 const questionsForView=()=>bank.questions.filter(q=>{
 if(selectedSubject!=='all'&&!belongs(q,selectedSubject))return false;
 if(selectedTopic!=='all'&&q.topic!==selectedTopic)return false;
+if(selectedBatch==='original'&&q.batchNumber!==undefined)return false;
+if(!['all','original'].includes(selectedBatch)&&String(q.batchNumber)!==selectedBatch)return false;
 if(questionType==='pyq'&&!isPYQ(q))return false;
 if(questionType==='core'&&isPYQ(q))return false;
 const a=state.answers[q.id];
 if(filterMode==='unanswered'&&a!==undefined)return false;
 if(filterMode==='wrong'&&(a===undefined||a===q.answer))return false;
 if(filterMode==='bookmarked'&&!state.bookmarks.includes(q.id))return false;
-if(search){const hay=(q.question+' '+q.options.join(' ')+' '+q.source+' '+q.subjectName).toLowerCase();if(!hay.includes(search))return false;}
+if(search){const hay=(q.question+' '+q.options.join(' ')+' '+q.source+' '+q.subjectName+' '+(q.topic||'')).toLowerCase();if(!hay.includes(search))return false;}
 return true;
 });
 const resumePastAnswered=()=>{if(!state.autoNext||filterMode!=='all')return;const list=questionsForView();while(index<list.length&&state.answers[list[index].id]!==undefined)index++;if(index>=list.length)index=Math.max(0,list.length-1);};
 
 function updateStats(){
 const all=bank.questions, answered=all.filter(q=>state.answers[q.id]!==undefined), correct=answered.filter(q=>state.answers[q.id]===q.answer).length, wrong=answered.length-correct;
+const view=questionsForView(),viewDone=view.filter(q=>state.answers[q.id]!==undefined).length;const subjectLabel=selectedSubject==='all'?'All subjects':(bank.sections.find(s=>s.slug===selectedSubject)?.name||'Subject');const batchLabel=selectedBatch==='all'?'':selectedBatch==='original'?' · earlier source banks':' · Batch '+selectedBatch;$('viewSummary').textContent=subjectLabel+batchLabel+' · '+view.length+' questions · '+viewDone+' answered';
 $('totalCount').textContent=all.length;$('answeredCount').textContent=answered.length;$('accuracyCount').textContent=answered.length>=10?Math.round(correct/answered.length*100)+'%':(answered.length?'Answer '+(10-answered.length)+' more to see accuracy':'Answer 10 questions to see accuracy');$('bookmarkCount').textContent=state.bookmarks.length;
 $('sideAnswered').textContent=answered.length+' / '+all.length;$('sideCorrect').textContent=correct;$('sideWrong').textContent=wrong;$('progressFill').style.width=(answered.length/all.length*100)+'%';
 $('subjectCounts').innerHTML=bank.sections.map(s=>'<div class="side-row"><span>'+esc(s.name)+'</span><b>'+bank.questions.filter(q=>belongs(q,s.slug)).length+'</b></div>').join('');
@@ -145,7 +158,7 @@ if(wrongBtn)wrongBtn.onclick=()=>{filterMode='wrong';index=0;document.querySelec
 const unansweredBtn=$('reviewUnansweredBtn');
 if(unansweredBtn)unansweredBtn.onclick=()=>{filterMode='unanswered';index=0;document.querySelectorAll('.chip').forEach(button=>button.classList.toggle('active',button.dataset.filter===filterMode));render();save();card.scrollIntoView({behavior:'smooth',block:'start'});};
 $('returnQuestionsBtn').onclick=()=>{index=0;render();save();card.scrollIntoView({behavior:'smooth',block:'start'});};
-$('allSubjectsBtn').onclick=()=>{selectedSubject='all';selectedTopic='all';filterMode='all';search='';index=0;subjectSelect.value='all';refreshTopics();topicSelect.value='all';searchBox.value='';document.querySelectorAll('.chip').forEach(button=>button.classList.toggle('active',button.dataset.filter==='all'));render();save();card.scrollIntoView({behavior:'smooth',block:'start'});};
+$('allSubjectsBtn').onclick=()=>{selectedSubject='all';selectedTopic='all';selectedBatch='all';refreshBatches();filterMode='all';search='';index=0;subjectSelect.value='all';refreshTopics();topicSelect.value='all';searchBox.value='';document.querySelectorAll('.chip').forEach(button=>button.classList.toggle('active',button.dataset.filter==='all'));render();save();card.scrollIntoView({behavior:'smooth',block:'start'});};
 }
 function render(){
 const list=questionsForView();if(index>=list.length)index=Math.max(0,list.length-1);
@@ -160,14 +173,17 @@ $('prevBtn').onclick=()=>{cancelAutoAdvance();index=Math.max(0,index-1);save();r
 $('nextBtn').onclick=()=>{cancelAutoAdvance();if(index<list.length-1){index++;save();render();card.scrollIntoView({behavior:'smooth',block:'start'});}else{finishView(list);card.scrollIntoView({behavior:'smooth',block:'start'});}};
 updateStats();
 }
-subjectSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedSubject=subjectSelect.value;selectedTopic='all';refreshTopics();index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
+subjectSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedSubject=subjectSelect.value;selectedTopic='all';selectedBatch='all';refreshBatches();refreshTopics();index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
 const questionTypeSelect=$('questionTypeSelect');questionTypeSelect.value=questionType;questionTypeSelect.addEventListener('change',()=>{cancelAutoAdvance();questionType=questionTypeSelect.value;index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
 topicSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedTopic=topicSelect.value;index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
 searchBox.addEventListener('input',()=>{cancelAutoAdvance();search=searchBox.value.trim().toLowerCase();index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();render();save();});
 document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{cancelAutoAdvance();filterMode=b.dataset.filter;index=Number.isInteger(state.positions[positionKey()])?state.positions[positionKey()]:0;resumePastAnswered();document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x===b));render();save();}));
+batchSelect.addEventListener('change',()=>{cancelAutoAdvance();selectedBatch=batchSelect.value;selectedTopic='all';topicSelect.value='all';index=0;render();save();});
+$('clearFiltersBtn').onclick=()=>{cancelAutoAdvance();selectedBatch='all';batchSelect.value='all';selectedTopic='all';topicSelect.value='all';filterMode='all';questionType='all';questionTypeSelect.value='all';search='';searchBox.value='';index=0;document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x.dataset.filter==='all'));render();save();};
 const autoNextToggle=$('autoNextToggle');autoNextToggle.checked=state.autoNext;autoNextToggle.addEventListener('change',()=>{state.autoNext=autoNextToggle.checked;if(!state.autoNext)cancelAutoAdvance();save();$('resumeNote').textContent=state.autoNext?'Auto-next enabled.':'Auto-next disabled.';});
 $('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),state},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='jvvnl-practice-progress.json';a.click();URL.revokeObjectURL(url);});
 if(window.matchMedia&&window.matchMedia('(max-width:600px)').matches){const mobileFilters=$('mobileFilters');if(mobileFilters)mobileFilters.open=false;}
+const requestedQuestion=params.get('question');if(requestedQuestion){const wanted=questionsForView().findIndex(q=>q.id===requestedQuestion);if(wanted>=0)index=wanted;}
 resumePastAnswered();save();render();
 })();
 </script>
