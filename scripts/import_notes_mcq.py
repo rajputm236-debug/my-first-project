@@ -33,6 +33,23 @@ def replace_json(text, marker, data):
     # The inline Accounting array must not allow text to close its script tag.
     encoded = json.dumps(data, ensure_ascii=False, separators=(',', ':')).replace('<', '\\u003c')
     return prefix+marker+encoded+rest.lstrip()[end:]
+def write_sync_metadata():
+    shared,_=json.JSONDecoder().raw_decode((DOCS/'question-bank.js').read_text().split('=',1)[1].lstrip())
+    accounting,_=json.JSONDecoder().raw_decode((DOCS/'accounting-mcq-practice.html').read_text().split('const questions=',1)[1].lstrip())
+    batches={};subjects=collections.Counter()
+    for q in accounting:
+        num=int(q['batch'][1:]);entry=batches.setdefault(num,{'batch':num,'subject':'Accounting','questions':0,'chapters':set()});entry['questions']+=1;entry['chapters'].add(q['chapter']);subjects['Accounting']+=1
+    labelmap={'cost-accounting-practice':'Costing','income-tax':'Income Tax','gst-taxation':'GST','auditing':'Auditing'}
+    for q in shared['questions']:
+        if 'batchNumber' not in q:continue
+        label=labelmap[q['subject']];num=q['batchNumber'];entry=batches.setdefault(num,{'batch':num,'subject':label,'questions':0,'chapters':set()});entry['questions']+=1;entry['chapters'].add(q.get('topic',''));subjects[label]+=1
+        if entry['subject']!=label:entry['subject']='Costing + Income Tax'
+    rows=[]
+    for num,row in sorted(batches.items()):
+        rows.append({**row,'chapters':' / '.join(sorted(row['chapters']))})
+    data={'version':1,'notes_total':sum(subjects.values()),'shared_practice_total':len(shared['questions']),'accounting_notes_total':len(accounting),'subject_counts':dict(subjects),'batches':rows}
+    (DOCS/'notes-sync.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('export',type=pathlib.Path);ap.add_argument('--subject',choices=['accounting',*MAP],required=True)
@@ -111,7 +128,7 @@ def main():
         path.write_text('window.JVVNL_BANK = '+json.dumps(bank,ensure_ascii=False,separators=(',',':'))+';\n')
         # Derive all public counts from actual records, never from raw source totals.
         counts=collections.Counter(slug for q in merged for slug in memberships(q));notes=collections.Counter(q['subject'] for q in merged if 'batchNumber' in q)
-        home=re.sub(r'\d[\d,]* practice questions',f'{total:,} practice questions',home)
+        home=re.sub(r'\d[\d,]* (?:shared )?practice questions',f'{total:,} shared practice questions',home)
         def update_card(m):
             card=m[0]
             if '<h3>Auditing &amp; Cost Audit</h3>' in card or '<h3>Auditing & Cost Audit</h3>' in card:
@@ -142,5 +159,6 @@ def main():
         s=re.sub(r'src="\./question-bank\.js(?:\?v=[^"]*)?"',f'src="./question-bank.js?v={version}"',s);practice.write_text(s)
         summary={'subject':args.subject,'source_rows':len(rows),'added':len(merged)-len(old),'shared_total':total,'subject_total':counts[slug],'batch_counts':dict(batch_counts)}
     (DOCS/'index.html').write_text(home)
+    write_sync_metadata()
     print(json.dumps(summary,indent=2))
 if __name__=='__main__':main()
