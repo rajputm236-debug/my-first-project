@@ -76,6 +76,7 @@ def main():
             if '<h3>Accounting MCQ Practice</h3>' not in card:return card
             card=re.sub(r'\d+ questions',f'{len(new)} questions',card)
             card=re.sub(r'\d+ batches',f'{len(counts)} batches',card)
+            card=card.replace('data-category="accounting"','data-category="commerce"')
             card=card.replace('Three uploaded Accounting MCQ batches',f'Accounting MCQ batches 1-{max(int(k[1:]) for k in counts)}')
             return card
         home=re.sub(r'<article\b.*?</article>',accounting_card,home,flags=re.S)
@@ -117,6 +118,11 @@ def main():
             if '<h3>Income Tax &amp; GST</h3>' in card or '<h3>Income Tax & GST</h3>' in card:
                 card=re.sub(r'\d+ unique GST MCQs',f'{counts["gst-taxation"]} unique GST MCQs',card)
                 card=re.sub(r'\d+ unique Income Tax MCQs',f'{counts["income-tax"]} unique Income Tax MCQs',card)
+                card=re.sub(r'\s*<a class="cardlink" data-notes-tax="true"[^>]*>.*?</a>','',card)
+                additions=''
+                for taxslug,label in [('gst-taxation','GST'),('income-tax','Income Tax')]:
+                    if notes[taxslug]:additions+=f' <a class="cardlink" data-notes-tax="true" href="./practice.html?subject={taxslug}">{label} practice ({counts[taxslug]}) →</a>'
+                card=card.replace('</div></article>',additions+'</div></article>')
             if '<h3>Cost Accounting</h3>' in card and notes['cost-accounting-practice']:
                 card=re.sub(r'<p>.*?</p>',f'<p>700-MCQ deep bank plus {counts["cost-accounting-practice"]} original practice questions, including {notes["cost-accounting-practice"]} notes-based MCQs. Existing cost-accounting PYQs remain separate.</p>',card,count=1)
                 card=re.sub(r'\s*<a class="cardlink" data-notes-cost="true"[^>]*>.*?</a>','',card)
