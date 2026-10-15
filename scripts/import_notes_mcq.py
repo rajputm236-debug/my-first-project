@@ -119,7 +119,7 @@ def main():
                 card=re.sub(r'\d+ unique Income Tax MCQs',f'{counts["income-tax"]} unique Income Tax MCQs',card)
             if '<h3>Cost Accounting</h3>' in card and notes['cost-accounting-practice']:
                 card=re.sub(r'<p>.*?</p>',f'<p>700-MCQ deep bank plus {counts["cost-accounting-practice"]} original practice questions, including {notes["cost-accounting-practice"]} notes-based MCQs. Existing cost-accounting PYQs remain separate.</p>',card,count=1)
-                card=re.sub(r'<a class="cardlink" data-notes-cost="true"[^>]*>.*?</a>','',card)
+                card=re.sub(r'\s*<a class="cardlink" data-notes-cost="true"[^>]*>.*?</a>','',card)
                 card=card.replace('</div></article>',f' <a class="cardlink" data-notes-cost="true" href="./practice.html?subject=cost-accounting-practice&amp;type=core">Notes MCQ ({counts["cost-accounting-practice"]}) →</a></div></article>')
             return card
         home=re.sub(r'<article\b.*?</article>',update_card,home,flags=re.S)
