@@ -160,5 +160,7 @@ def main():
         summary={'subject':args.subject,'source_rows':len(rows),'added':len(merged)-len(old),'shared_total':total,'subject_total':counts[slug],'batch_counts':dict(batch_counts)}
     (DOCS/'index.html').write_text(home)
     write_sync_metadata()
+    from version_site import main as version_site
+    version_site()
     print(json.dumps(summary,indent=2))
 if __name__=='__main__':main()
