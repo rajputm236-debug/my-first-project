@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "notes_total": 2014,
-  "shared_practice_total": 2851,
+  "notes_total": 2022,
+  "shared_practice_total": 2859,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
-    "Costing": 486,
+    "Costing": 494,
     "Income Tax": 160,
     "GST": 144,
     "Computer": 56
@@ -165,7 +165,7 @@
     {
       "batch": 26,
       "subject": "Costing",
-      "questions": 14,
+      "questions": 22,
       "chapters": "Ch 35B StdCost-Labour / Ch 36A StdCost-Overhead"
     },
     {
