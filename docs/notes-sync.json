@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "notes_total": 2186,
-  "shared_practice_total": 3023,
+  "notes_total": 2198,
+  "shared_practice_total": 3035,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
     "Costing": 554,
     "Income Tax": 240,
-    "GST": 168,
+    "GST": 180,
     "Computer": 56
   },
   "batches": [
@@ -255,7 +255,7 @@
     {
       "batch": 41,
       "subject": "GST",
-      "questions": 24,
+      "questions": 36,
       "chapters": "G7 ITC I / G8 ITC II / G9 Registration"
     },
     {
