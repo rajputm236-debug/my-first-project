@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "notes_total": 1990,
-  "shared_practice_total": 2827,
+  "notes_total": 1998,
+  "shared_practice_total": 2835,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
-    "Costing": 462,
+    "Costing": 470,
     "Income Tax": 160,
     "GST": 144,
     "Computer": 56
@@ -147,7 +147,7 @@
     {
       "batch": 23,
       "subject": "Costing",
-      "questions": 16,
+      "questions": 24,
       "chapters": "Ch 31 Operating / Ch 32 Other-Methods"
     },
     {
