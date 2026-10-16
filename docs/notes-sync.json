@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "notes_total": 2222,
-  "shared_practice_total": 3059,
+  "notes_total": 2234,
+  "shared_practice_total": 3071,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
     "Costing": 554,
     "Income Tax": 240,
-    "GST": 204,
+    "GST": 216,
     "Computer": 56
   },
   "batches": [
@@ -273,7 +273,7 @@
     {
       "batch": 44,
       "subject": "GST",
-      "questions": 24,
+      "questions": 36,
       "chapters": "G16A Assessment, Audit and Search / G16B Demand, Appeals and Offences / G17 Computations and Entries"
     },
     {
