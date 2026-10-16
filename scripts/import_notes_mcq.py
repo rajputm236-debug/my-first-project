@@ -142,9 +142,9 @@ def main():
                 expected='R2' if args.expand_r2 else 'R1'
                 assert args.subject!='accounting' and all(b.get('revision')==expected for b,q in rows), 'Expansion requires matching shared-bank revision export'
                 assert current and current<supplied,('R2 must retain all core IDs and add new ones',number)
-                prior_numbers={int(ident.rsplit('q',1)[1]) for ident in current}
-                added_numbers={int(ident.rsplit('q',1)[1]) for ident in supplied-current}
-                assert added_numbers==set(range(max(prior_numbers)+1,max(prior_numbers)+1+len(added_numbers))),('R2 additions must append contiguous question numbers',number)
+                all_published={int(q['id'].rsplit('q',1)[1]) for q in published if q.get('batchNumber')==number}
+                universe=all_published|{int(ident.rsplit('q',1)[1]) for ident in supplied}
+                assert universe==set(range(1,max(universe)+1)),('Expansion must keep batch numbering globally contiguous',number)
             else:
                 assert current==supplied,('Incomplete revision batch or new IDs',number,current-supplied,supplied-current)
     home=(DOCS/'index.html').read_text()

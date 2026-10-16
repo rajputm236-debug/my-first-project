@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "notes_total": 2030,
-  "shared_practice_total": 2867,
+  "notes_total": 2150,
+  "shared_practice_total": 2987,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
-    "Costing": 502,
-    "Income Tax": 160,
+    "Costing": 554,
+    "Income Tax": 228,
     "GST": 144,
     "Computer": 56
   },
@@ -177,61 +177,61 @@
     {
       "batch": 28,
       "subject": "Costing",
-      "questions": 24,
+      "questions": 36,
       "chapters": "Ch 37A Budgets-Functional / Ch 37B Cash-Flexible / Ch 37C ZBB-Motivation"
     },
     {
       "batch": 29,
       "subject": "Costing",
-      "questions": 24,
+      "questions": 36,
       "chapters": "Ch 38A Target-LCC / Ch 38B Kaizen-Throughput-VA / Ch 38C Learning-Backflush-JIT"
     },
     {
       "batch": 30,
       "subject": "Costing",
-      "questions": 24,
+      "questions": 36,
       "chapters": "Ch 39A CAS 1-5 / Ch 39B1 CAS 6-8 / Ch 39B2 CAS 9-12"
     },
     {
       "batch": 31,
       "subject": "Costing",
-      "questions": 24,
+      "questions": 36,
       "chapters": "Ch 39C1 CAS 13-15 / Ch 39C2 CAS 16-19 / Ch 39D1 CAS-25"
     },
     {
       "batch": 32,
       "subject": "Costing + Income Tax",
-      "questions": 24,
+      "questions": 36,
       "chapters": "Ch 39D2 CAS 20-24 / IT1 Basics-Rates / IT2 Residence-Scope"
     },
     {
       "batch": 33,
       "subject": "Income Tax",
-      "questions": 24,
+      "questions": 36,
       "chapters": "IT3 Exemptions / IT4 Salaries-I / IT5 Salaries-II"
     },
     {
       "batch": 34,
       "subject": "Income Tax",
-      "questions": 24,
+      "questions": 36,
       "chapters": "IT6 House-Property / IT7 Business-Income-I / IT8 Business-Income-II"
     },
     {
       "batch": 35,
       "subject": "Income Tax",
-      "questions": 24,
+      "questions": 36,
       "chapters": "IT10 Capital-Gains-II / IT9A Capital-Gains-I / IT9B CG-Exemptions"
     },
     {
       "batch": 36,
       "subject": "Income Tax",
-      "questions": 24,
+      "questions": 36,
       "chapters": "IT11 Other-Sources / IT12 Clubbing-Setoff / IT13 Deductions"
     },
     {
       "batch": 37,
       "subject": "Income Tax",
-      "questions": 24,
+      "questions": 36,
       "chapters": "IT14 Computation / IT15 Firms-Companies / IT16 TDS-TCS"
     },
     {
