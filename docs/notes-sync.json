@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "notes_total": 2162,
-  "shared_practice_total": 2999,
+  "notes_total": 2174,
+  "shared_practice_total": 3011,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
     "Costing": 554,
     "Income Tax": 240,
-    "GST": 144,
+    "GST": 156,
     "Computer": 56
   },
   "batches": [
@@ -243,7 +243,7 @@
     {
       "batch": 39,
       "subject": "GST",
-      "questions": 24,
+      "questions": 36,
       "chapters": "G1 GST Intro-Council / G2 Supply / G3 Charge-Rates-Composition"
     },
     {
