@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "notes_total": 2198,
-  "shared_practice_total": 3035,
+  "notes_total": 2210,
+  "shared_practice_total": 3047,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
     "Costing": 554,
     "Income Tax": 240,
-    "GST": 180,
+    "GST": 192,
     "Computer": 56
   },
   "batches": [
@@ -261,7 +261,7 @@
     {
       "batch": 42,
       "subject": "GST",
-      "questions": 24,
+      "questions": 36,
       "chapters": "G10 Invoice and Records / G11 Payment and Returns / G12 Reverse Charge and Source Tax"
     },
     {
