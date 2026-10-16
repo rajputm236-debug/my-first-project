@@ -13,7 +13,7 @@ try {
   $('resumeStudyLink').textContent='Continue practice →';$('resumeStudyLink').href=path+'?'+params;
  }
 } catch(e) { /* The rest of the library remains usable without local storage. */ }
-fetch('./notes-sync.json?v=4f8976a91adb',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error('No sync metadata');return r.json()}).then(meta=>{
+fetch('./notes-sync.json?v=cc27fa15cb8f',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error('No sync metadata');return r.json()}).then(meta=>{
  if(!Array.isArray(meta.batches)||!meta.batches.length)return;
  const latest=[...meta.batches].sort((a,b)=>b.batch-a.batch)[0];
  if(!Number.isInteger(latest.batch)||!Number.isInteger(latest.questions))return;
