@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "notes_total": 1830,
-  "shared_practice_total": 2667,
+  "notes_total": 1862,
+  "shared_practice_total": 2699,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
@@ -9,7 +9,7 @@
     "Costing": 418,
     "Income Tax": 160,
     "GST": 144,
-    "Computer": 24
+    "Computer": 56
   },
   "batches": [
     {
@@ -323,6 +323,12 @@
       "subject": "Computer",
       "questions": 24,
       "chapters": "CI1 Computer Fundamentals / CI2 Computerised Accounting / CI3 Spreadsheets for Accounting"
+    },
+    {
+      "batch": 53,
+      "subject": "Computer",
+      "questions": 32,
+      "chapters": "CI4 Database Concepts / CI5 Information Security and Cyber Safety / CI6 Ecommerce Efiling Digital Payments / CI7 Emerging Technology in Accounting"
     }
   ]
 }
