@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "notes_total": 1966,
-  "shared_practice_total": 2803,
+  "notes_total": 1978,
+  "shared_practice_total": 2815,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
-    "Costing": 438,
+    "Costing": 450,
     "Income Tax": 160,
     "GST": 144,
     "Computer": 56
@@ -135,7 +135,7 @@
     {
       "batch": 21,
       "subject": "Costing",
-      "questions": 29,
+      "questions": 41,
       "chapters": "Ch 27 Job-Batch / Ch 28 Contract / Ch 29 Process-I"
     },
     {
