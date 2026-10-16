@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "notes_total": 2210,
-  "shared_practice_total": 3047,
+  "notes_total": 2222,
+  "shared_practice_total": 3059,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
     "Costing": 554,
     "Income Tax": 240,
-    "GST": 192,
+    "GST": 204,
     "Computer": 56
   },
   "batches": [
@@ -267,7 +267,7 @@
     {
       "batch": 43,
       "subject": "GST",
-      "questions": 24,
+      "questions": 36,
       "chapters": "G13 Refunds / G14 Imports, Exports and SEZ / G15 E-Way Bill and E-Invoicing"
     },
     {
