@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "notes_total": 1946,
-  "shared_practice_total": 2783,
+  "notes_total": 1954,
+  "shared_practice_total": 2791,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
-    "Costing": 418,
+    "Costing": 426,
     "Income Tax": 160,
     "GST": 144,
     "Computer": 56
@@ -123,7 +123,7 @@
     {
       "batch": 19,
       "subject": "Costing",
-      "questions": 20,
+      "questions": 28,
       "chapters": "Ch 23A Overheads-III-Absorption / Ch 23B Overheads-III-Capacity"
     },
     {
