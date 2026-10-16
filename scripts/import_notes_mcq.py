@@ -57,7 +57,7 @@ def content_signature(row):
     clean=lambda text:re.sub(r'\s+',' ',str(text)).strip()
     payload=[clean(row['question']),[clean(v) for v in options],answer,clean(row['explanation'])]
     return hashlib.sha256(json.dumps(payload,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
-def attach_revision(previous,row,batch,question,correction_ids=()):
+def attach_revision(previous,row,batch,question,correction_ids=(),expand_r2=False):
     marker=batch.get('revision')
     if not marker:
         assert not question.get('revision') and 'changed' not in question,('Question revision requires batch revision',row['id'])
@@ -66,6 +66,17 @@ def attach_revision(previous,row,batch,question,correction_ids=()):
             for key in ['revision','revisionChanged','revisionHistory','contentSignature']:
                 if key in previous:row[key]=previous[key]
         row['contentSignature']=content_signature(row)
+        return row
+    if marker=='R2' and expand_r2:
+        assert type(question.get('changed')) is bool,('Missing boolean changed',row['id'])
+        if previous is not None:
+            assert question.get('revision')==previous.get('revision') and question['changed'] is False,('R2 core must retain its revision and be unchanged',row['id'])
+            assert content_signature(previous)==content_signature(row),('R2 expansion modified core',row['id'])
+            for key in ['revision','revisionChanged','revisionHistory','contentSignature']:
+                if key in previous:row[key]=previous[key]
+        else:
+            assert question.get('revision')=='R2' and question['changed'] is True,('New R2 row flags',row['id'])
+            row.update(revision='R2',revisionChanged=True,revisionHistory=[],contentSignature=content_signature(row))
         return row
     assert marker=='R1' and question.get('revision')==marker,('Revision markers disagree',row['id'])
     assert type(question.get('changed')) is bool,('Missing boolean changed',row['id'])
@@ -98,6 +109,7 @@ def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('export',type=pathlib.Path);ap.add_argument('--subject',choices=['accounting',*MAP],required=True)
     ap.add_argument('--correct-ids',nargs='*',default=[],help='Explicit reviewed same-revision correction IDs; all other changed R1 rows are rejected')
+    ap.add_argument('--expand-r2',action='store_true',help='Explicit append-only R2 expansion; every core ID and content must remain unchanged')
     args=ap.parse_args(); source=json.loads(args.export.read_text())
     rows=[];batch_counts=collections.Counter()
     for b in source['batches']:
@@ -120,7 +132,14 @@ def main():
         for number in {b['batch'] for b,q in rows if b.get('revision')}:
             current={q['id'] for q in published if (q.get('batch')==f'b{number}' if args.subject=='accounting' else q.get('batchNumber')==number and q['subject']==MAP[args.subject][0])}
             supplied={f"b{number}-q{q['q_no']}" if args.subject=='accounting' else f"notes-b{number:03d}-q{q['q_no']:03d}" for b,q in rows if b['batch']==number}
-            assert current==supplied,('Incomplete revision batch or new IDs',number,current-supplied,supplied-current)
+            if args.expand_r2:
+                assert args.subject!='accounting' and all(b.get('revision')=='R2' for b,q in rows), 'R2 expansion requires shared-bank R2 export'
+                assert current and current<supplied,('R2 must retain all core IDs and add new ones',number)
+                prior_numbers={int(ident.rsplit('q',1)[1]) for ident in current}
+                added_numbers={int(ident.rsplit('q',1)[1]) for ident in supplied-current}
+                assert added_numbers==set(range(max(prior_numbers)+1,max(prior_numbers)+1+len(added_numbers))),('R2 additions must append contiguous question numbers',number)
+            else:
+                assert current==supplied,('Incomplete revision batch or new IDs',number,current-supplied,supplied-current)
     home=(DOCS/'index.html').read_text()
     if args.subject=='accounting':
         path=DOCS/'accounting-mcq-practice.html';text=path.read_text()
@@ -129,7 +148,7 @@ def main():
             ident=f"b{q['batch']}-q{q['q_no']}"
             row={'id':ident,'batch':f"b{q['batch']}",'number':q['q_no'],'chapter':q['tag'],
                  'question':q['question'],'options':q['options'],'answer':q['correct'],'explanation':q['explanation']}
-            row=attach_revision(byid.get(ident),row,b,q,args.correct_ids)
+            row=attach_revision(byid.get(ident),row,b,q,args.correct_ids,args.expand_r2)
             new.append(row)
         # Do not remove an older imported batch when a later export is partial.
         newids={q['id'] for q in new};new= [q for q in old if q['id'] not in newids]+new
@@ -165,7 +184,7 @@ def main():
                  'explanation':q['explanation'],'source':f"Original practice from JVVNL JA Notes MCQ - {b['subject']} Batch {q['batch']}",
                  'sourceVersion':f"Notes MCQ Batch {q['batch']}",'batchNumber':q['batch'],'chapter':q['chapter'],
                  'answerVerification':'Source answer retained; not independently verified'}
-            row=attach_revision(byid.get(ident),row,b,q,args.correct_ids)
+            row=attach_revision(byid.get(ident),row,b,q,args.correct_ids,args.expand_r2)
             new.append(row)
         replacements={q['id']:q for q in new};merged=[replacements.pop(q['id'],q) for q in old]+list(replacements.values());bank['questions']=merged
         assert len({q['id'] for q in merged})==len(merged)

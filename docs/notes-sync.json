@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "notes_total": 1862,
-  "shared_practice_total": 2699,
+  "notes_total": 1874,
+  "shared_practice_total": 2711,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
-    "Auditing": 168,
+    "Auditing": 180,
     "Costing": 418,
     "Income Tax": 160,
     "GST": 144,
@@ -315,7 +315,7 @@
     {
       "batch": 51,
       "subject": "Auditing",
-      "questions": 24,
+      "questions": 36,
       "chapters": "CAU2 Cost Audit II / MAU1 Management Audit I / MAU2 Management Audit II"
     },
     {
