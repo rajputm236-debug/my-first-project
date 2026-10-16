@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Prepare consolidated Costing/Auditing data without touching source banks."""
 import copy,json,pathlib
+from import_notes_mcq import content_signature
 ROOT=pathlib.Path(__file__).resolve().parents[1];DOCS=ROOT/'docs'
 def inline(path,marker):return json.JSONDecoder().raw_decode(path.read_text().split(marker,1)[1].lstrip())[0]
 def build():
@@ -27,6 +28,10 @@ def build():
  accounting=inline(DOCS/'accounting-mcq-practice.html','const questions=')
  for q in accounting:
   bank['questions'].append({'id':q['id'],'sourceNumber':q['number'],'subject':'accounting','subjectName':'Accounting','topic':q['chapter'],'question':q['question'],'options':[q['options'][k] for k in 'ABCD'],'answer':ord(q['answer'])-65,'explanation':q['explanation'],'source':'Accounting Notes Batch '+q['batch'][1:],'sourceBank':'notes','batchNumber':int(q['batch'][1:]),'legacyProgress':{'storageKey':'jvvnl-accounting-notes-progress-v1','questionId':q['id'],'optionFormat':'letter'}})
+ for accounting_row in accounting:
+  target=next(q for q in bank['questions'] if q['id']==accounting_row['id'])
+  for key in ['revision','revisionChanged','revisionHistory','contentSignature']:
+   if key in accounting_row:target[key]=accounting_row[key]
  sections=[];seen=set()
  for section in bank['sections']:
   section=copy.deepcopy(section);slug=section['slug'];slug='cost-accounting' if slug in cost_slugs else 'auditing' if slug in audit_slugs else 'computer-awareness' if slug=='computer-applications' else slug
@@ -37,6 +42,8 @@ def build():
   if slug=='computer-awareness':section['name']='Computer Awareness & Applications'
   section['count']=sum(q['subject']==slug or slug in q.get('secondarySubjects',[]) for q in bank['questions']);sections.append(section)
  sections.append({'slug':'accounting','name':'Accounting','count':len(accounting)})
+ for row in bank['questions']:
+  row['contentSignature']=content_signature(row)
  bank['sections']=sections;bank['totalCount']=bank['totalValid']=len(bank['questions']);bank['consolidationVersion']=1
  assert len({q['id'] for q in bank['questions']})==len(bank['questions'])
  original_by_id={q['id']:q for q in original['questions']}

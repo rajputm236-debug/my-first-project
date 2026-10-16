@@ -51,6 +51,39 @@ def write_sync_metadata():
     data={'version':1,'notes_total':sum(subjects.values()),'shared_practice_total':len(shared['questions']),'accounting_notes_total':len(accounting),'subject_counts':dict(subjects),'batches':rows}
     (DOCS/'notes-sync.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
 
+def content_signature(row):
+    options=row['options'];options=[options[k] for k in 'ABCD'] if isinstance(options,dict) else options
+    answer=row.get('answer');answer=ord(answer)-65 if isinstance(answer,str) else answer
+    clean=lambda text:re.sub(r'\s+',' ',str(text)).strip()
+    payload=[clean(row['question']),[clean(v) for v in options],answer,clean(row['explanation'])]
+    return hashlib.sha256(json.dumps(payload,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+def attach_revision(previous,row,batch,question):
+    marker=batch.get('revision')
+    if not marker:
+        assert not question.get('revision') and 'changed' not in question,('Question revision requires batch revision',row['id'])
+        if previous:
+            assert content_signature(previous)==content_signature(row),('Existing content changed without revision',row['id'])
+            for key in ['revision','revisionChanged','revisionHistory','contentSignature']:
+                if key in previous:row[key]=previous[key]
+        row['contentSignature']=content_signature(row)
+        return row
+    assert marker=='R1' and question.get('revision')==marker,('Revision markers disagree',row['id'])
+    assert type(question.get('changed')) is bool,('Missing boolean changed',row['id'])
+    assert previous is not None,('Revision must reference existing ID',row['id'])
+    if previous.get('revision')==marker:
+        assert content_signature(previous)==content_signature(row),('Same revision changed again',row['id'])
+        assert previous.get('revisionChanged')==question['changed'],('Same revision changed flag mismatch',row['id'])
+        for key in ['revision','revisionChanged','revisionHistory','contentSignature']:row[key]=previous[key]
+        return row
+    changed=content_signature(previous)!=content_signature(row)
+    assert question['changed']==changed,('changed flag disagrees with published content',row['id'])
+    row['revision']=marker;row['revisionChanged']=changed;row['contentSignature']=content_signature(row)
+    history=list(previous.get('revisionHistory',[]))
+    if changed:
+        history.append({'revision':previous.get('revision','original'),'contentSignature':content_signature(previous),'question':previous['question'],'options':previous['options'],'answer':previous['answer'],'explanation':previous['explanation']})
+    row['revisionHistory']=history
+    return row
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('export',type=pathlib.Path);ap.add_argument('--subject',choices=['accounting',*MAP],required=True)
@@ -67,6 +100,16 @@ def main():
     assert rows, 'No source questions for selected subject'
     assert len({(q['batch'],q['q_no']) for _,q in rows})==len(rows), 'Duplicate batch/question IDs'
     assert len({fingerprint(q['question'],q['options'].values()) for _,q in rows})==len(rows), 'Duplicate source records'
+    # A revision batch must contain every existing row for this subject/batch.
+    if any(b.get('revision') for b,q in rows):
+        if args.subject=='accounting':
+            published,_=json.JSONDecoder().raw_decode((DOCS/'accounting-mcq-practice.html').read_text().split('const questions=',1)[1].lstrip())
+        else:
+            published=json.JSONDecoder().raw_decode((DOCS/'question-bank.js').read_text().split('=',1)[1].lstrip())[0]['questions']
+        for number in {b['batch'] for b,q in rows if b.get('revision')}:
+            current={q['id'] for q in published if (q.get('batch')==f'b{number}' if args.subject=='accounting' else q.get('batchNumber')==number and q['subject']==MAP[args.subject][0])}
+            supplied={f"b{number}-q{q['q_no']}" if args.subject=='accounting' else f"notes-b{number:03d}-q{q['q_no']:03d}" for b,q in rows if b['batch']==number}
+            assert current==supplied,('Incomplete revision batch or new IDs',number,current-supplied,supplied-current)
     home=(DOCS/'index.html').read_text()
     if args.subject=='accounting':
         path=DOCS/'accounting-mcq-practice.html';text=path.read_text()
@@ -75,10 +118,7 @@ def main():
             ident=f"b{q['batch']}-q{q['q_no']}"
             row={'id':ident,'batch':f"b{q['batch']}",'number':q['q_no'],'chapter':q['tag'],
                  'question':q['question'],'options':q['options'],'answer':q['correct'],'explanation':q['explanation']}
-            if ident in byid:
-                previous=byid[ident]
-                assert previous['answer']==row['answer'], ('Existing key changed',ident)
-                assert [normalize(v) for v in previous['options'].values()]==[normalize(v) for v in row['options'].values()], ('Existing options changed',ident)
+            row=attach_revision(byid.get(ident),row,b,q)
             new.append(row)
         # Do not remove an older imported batch when a later export is partial.
         newids={q['id'] for q in new};new= [q for q in old if q['id'] not in newids]+new
@@ -107,9 +147,6 @@ def main():
         oldprints={fingerprint(q['question'],q['options']):q['id'] for q in old}
         for b,q in rows:
             ident=f"notes-b{q['batch']:03d}-q{q['q_no']:03d}"
-            if ident in byid:
-                assert byid[ident]['answer']==ord(q['correct'])-65, ('Existing key changed',ident)
-                assert [normalize(v) for v in byid[ident]['options']]==[normalize(v) for v in q['options'].values()], ('Existing options changed',ident)
             collision=oldprints.get(fingerprint(q['question'],q['options'].values()))
             assert not collision or collision==ident, ('Duplicate existing record',ident,collision)
             row={'id':ident,'sourceNumber':q['q_no'],'subject':slug,'subjectName':name,'topic':q['tag'],
@@ -117,6 +154,7 @@ def main():
                  'explanation':q['explanation'],'source':f"Original practice from JVVNL JA Notes MCQ - {b['subject']} Batch {q['batch']}",
                  'sourceVersion':f"Notes MCQ Batch {q['batch']}",'batchNumber':q['batch'],'chapter':q['chapter'],
                  'answerVerification':'Source answer retained; not independently verified'}
+            row=attach_revision(byid.get(ident),row,b,q)
             new.append(row)
         replacements={q['id']:q for q in new};merged=[replacements.pop(q['id'],q) for q in old]+list(replacements.values());bank['questions']=merged
         assert len({q['id'] for q in merged})==len(merged)
