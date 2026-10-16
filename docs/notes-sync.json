@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "notes_total": 1734,
-  "shared_practice_total": 2571,
+  "notes_total": 1758,
+  "shared_practice_total": 2595,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
-    "Auditing": 96,
+    "Auditing": 120,
     "Costing": 418,
     "Income Tax": 160,
     "GST": 144
@@ -298,6 +298,12 @@
       "subject": "Auditing",
       "questions": 24,
       "chapters": "AU10 Audit Report II / AU11 Special Audit Areas / AU12 Audit of Different Entities"
+    },
+    {
+      "batch": 49,
+      "subject": "Auditing",
+      "questions": 24,
+      "chapters": "AU12B Audit of Banks / AU12C Secretarial Audit and NFRA / AU12D Audit of Insurance Companies"
     }
   ]
 }
