@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "notes_total": 1978,
-  "shared_practice_total": 2815,
+  "notes_total": 1990,
+  "shared_practice_total": 2827,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
-    "Costing": 450,
+    "Costing": 462,
     "Income Tax": 160,
     "GST": 144,
     "Computer": 56
@@ -141,7 +141,7 @@
     {
       "batch": 22,
       "subject": "Costing",
-      "questions": 26,
+      "questions": 38,
       "chapters": "Ch 30A Equiv-Units / Ch 30B Inter-Process / Ch 30C Joint-ByProd"
     },
     {
