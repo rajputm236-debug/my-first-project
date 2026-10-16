@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "notes_total": 2174,
-  "shared_practice_total": 3011,
+  "notes_total": 2186,
+  "shared_practice_total": 3023,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
     "Costing": 554,
     "Income Tax": 240,
-    "GST": 156,
+    "GST": 168,
     "Computer": 56
   },
   "batches": [
@@ -249,7 +249,7 @@
     {
       "batch": 40,
       "subject": "GST",
-      "questions": 24,
+      "questions": 36,
       "chapters": "G4 Place of Supply / G5 Time of Supply / G6 Value of Supply"
     },
     {
