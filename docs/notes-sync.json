@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "notes_total": 2234,
-  "shared_practice_total": 3071,
+  "notes_total": 2246,
+  "shared_practice_total": 3083,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
@@ -9,7 +9,7 @@
     "Costing": 554,
     "Income Tax": 240,
     "GST": 216,
-    "Computer": 56
+    "Computer": 68
   },
   "batches": [
     {
@@ -321,7 +321,7 @@
     {
       "batch": 52,
       "subject": "Computer",
-      "questions": 24,
+      "questions": 36,
       "chapters": "CI1 Computer Fundamentals / CI2 Computerised Accounting / CI3 Spreadsheets for Accounting"
     },
     {
