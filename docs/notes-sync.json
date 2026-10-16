@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "notes_total": 2022,
-  "shared_practice_total": 2859,
+  "notes_total": 2030,
+  "shared_practice_total": 2867,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
-    "Costing": 494,
+    "Costing": 502,
     "Income Tax": 160,
     "GST": 144,
     "Computer": 56
@@ -171,7 +171,7 @@
     {
       "batch": 27,
       "subject": "Costing",
-      "questions": 15,
+      "questions": 23,
       "chapters": "Ch 36B SalesVar-Recon / Ch 36C Ratios-Investigation"
     },
     {
