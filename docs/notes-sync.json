@@ -1,14 +1,15 @@
 {
   "version": 1,
-  "notes_total": 1806,
-  "shared_practice_total": 2643,
+  "notes_total": 1830,
+  "shared_practice_total": 2667,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 168,
     "Costing": 418,
     "Income Tax": 160,
-    "GST": 144
+    "GST": 144,
+    "Computer": 24
   },
   "batches": [
     {
@@ -316,6 +317,12 @@
       "subject": "Auditing",
       "questions": 24,
       "chapters": "CAU2 Cost Audit II / MAU1 Management Audit I / MAU2 Management Audit II"
+    },
+    {
+      "batch": 52,
+      "subject": "Computer",
+      "questions": 24,
+      "chapters": "CI1 Computer Fundamentals / CI2 Computerised Accounting / CI3 Spreadsheets for Accounting"
     }
   ]
 }

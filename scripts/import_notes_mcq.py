@@ -12,7 +12,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 DOCS = ROOT / 'docs'
 MAP = {'costing': ('cost-accounting-practice', 'Cost Accounting Concepts (Practice)'),
        'income-tax': ('income-tax', 'Income Tax'), 'gst': ('gst-taxation', 'GST & Taxation'),
-       'auditing': ('auditing', 'Auditing')}
+       'auditing': ('auditing', 'Auditing'), 'computer': ('computer-applications', 'Computer Awareness & Applications')}
 def subject_of(batch, q):
     chapter = q.get('chapter', '')
     if re.match(r'Chapter IT\d', chapter): return 'income-tax'
@@ -22,6 +22,7 @@ def subject_of(batch, q):
     if 'income tax' in subject: return 'income-tax'
     if subject == 'gst': return 'gst'
     if 'audit' in subject: return 'auditing'
+    if 'computer' in subject: return 'computer'
     raise ValueError('Unmapped subject: '+batch['subject'])
 def memberships(q): return [q['subject'], *q.get('secondarySubjects', [])]
 def is_pyq(q): return str(q['id']).lower().startswith('pyq-') or 'pyq' in q['subject'].lower() or bool(re.search(r'\bpyq\b',q.get('source',''),re.I))
@@ -39,7 +40,7 @@ def write_sync_metadata():
     batches={};subjects=collections.Counter()
     for q in accounting:
         num=int(q['batch'][1:]);entry=batches.setdefault(num,{'batch':num,'subject':'Accounting','questions':0,'chapters':set()});entry['questions']+=1;entry['chapters'].add(q['chapter']);subjects['Accounting']+=1
-    labelmap={'cost-accounting-practice':'Costing','income-tax':'Income Tax','gst-taxation':'GST','auditing':'Auditing'}
+    labelmap={'cost-accounting-practice':'Costing','income-tax':'Income Tax','gst-taxation':'GST','auditing':'Auditing','computer-applications':'Computer'}
     for q in shared['questions']:
         if 'batchNumber' not in q:continue
         label=labelmap[q['subject']];num=q['batchNumber'];entry=batches.setdefault(num,{'batch':num,'subject':label,'questions':0,'chapters':set()});entry['questions']+=1;entry['chapters'].add(q.get('topic',''));subjects[label]+=1
