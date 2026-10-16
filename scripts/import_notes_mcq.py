@@ -57,7 +57,7 @@ def content_signature(row):
     clean=lambda text:re.sub(r'\s+',' ',str(text)).strip()
     payload=[clean(row['question']),[clean(v) for v in options],answer,clean(row['explanation'])]
     return hashlib.sha256(json.dumps(payload,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
-def attach_revision(previous,row,batch,question):
+def attach_revision(previous,row,batch,question,correction_ids=()):
     marker=batch.get('revision')
     if not marker:
         assert not question.get('revision') and 'changed' not in question,('Question revision requires batch revision',row['id'])
@@ -70,6 +70,16 @@ def attach_revision(previous,row,batch,question):
     assert marker=='R1' and question.get('revision')==marker,('Revision markers disagree',row['id'])
     assert type(question.get('changed')) is bool,('Missing boolean changed',row['id'])
     assert previous is not None,('Revision must reference existing ID',row['id'])
+    if previous.get('revision')==marker and content_signature(previous)!=content_signature(row) and row['id'] in correction_ids:
+        history=list(previous.get('revisionHistory',[]))
+        baseline=next((v for v in history if v.get('revision')=='original'),previous)
+        changed=content_signature(baseline)!=content_signature(row)
+        assert question['changed']==changed,('Correction flag disagrees with original baseline',row['id'])
+        if not history:
+            history.append({'revision':'original','contentSignature':content_signature(previous),'question':previous['question'],'options':previous['options'],'answer':previous['answer'],'explanation':previous['explanation']})
+        history.append({'revision':marker,'contentSignature':content_signature(previous),'question':previous['question'],'options':previous['options'],'answer':previous['answer'],'explanation':previous['explanation']})
+        row.update(revision=marker,revisionChanged=changed,contentSignature=content_signature(row),revisionHistory=history)
+        return row
     if previous.get('revision')==marker:
         assert content_signature(previous)==content_signature(row),('Same revision changed again',row['id'])
         assert previous.get('revisionChanged')==question['changed'],('Same revision changed flag mismatch',row['id'])
@@ -87,6 +97,7 @@ def attach_revision(previous,row,batch,question):
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('export',type=pathlib.Path);ap.add_argument('--subject',choices=['accounting',*MAP],required=True)
+    ap.add_argument('--correct-ids',nargs='*',default=[],help='Explicit reviewed same-revision correction IDs; all other changed R1 rows are rejected')
     args=ap.parse_args(); source=json.loads(args.export.read_text())
     rows=[];batch_counts=collections.Counter()
     for b in source['batches']:
@@ -118,7 +129,7 @@ def main():
             ident=f"b{q['batch']}-q{q['q_no']}"
             row={'id':ident,'batch':f"b{q['batch']}",'number':q['q_no'],'chapter':q['tag'],
                  'question':q['question'],'options':q['options'],'answer':q['correct'],'explanation':q['explanation']}
-            row=attach_revision(byid.get(ident),row,b,q)
+            row=attach_revision(byid.get(ident),row,b,q,args.correct_ids)
             new.append(row)
         # Do not remove an older imported batch when a later export is partial.
         newids={q['id'] for q in new};new= [q for q in old if q['id'] not in newids]+new
@@ -154,7 +165,7 @@ def main():
                  'explanation':q['explanation'],'source':f"Original practice from JVVNL JA Notes MCQ - {b['subject']} Batch {q['batch']}",
                  'sourceVersion':f"Notes MCQ Batch {q['batch']}",'batchNumber':q['batch'],'chapter':q['chapter'],
                  'answerVerification':'Source answer retained; not independently verified'}
-            row=attach_revision(byid.get(ident),row,b,q)
+            row=attach_revision(byid.get(ident),row,b,q,args.correct_ids)
             new.append(row)
         replacements={q['id']:q for q in new};merged=[replacements.pop(q['id'],q) for q in old]+list(replacements.values());bank['questions']=merged
         assert len({q['id'] for q in merged})==len(merged)
