@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "notes_total": 1934,
-  "shared_practice_total": 2771,
+  "notes_total": 1946,
+  "shared_practice_total": 2783,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
-    "Auditing": 240,
+    "Auditing": 252,
     "Costing": 418,
     "Income Tax": 160,
     "GST": 144,
@@ -309,7 +309,7 @@
     {
       "batch": 50,
       "subject": "Auditing",
-      "questions": 24,
+      "questions": 36,
       "chapters": "AU13 Audit in a Computer Environment / AU14 Liability, Audit Committee, Investigation / CAU1 Cost Audit I"
     },
     {
