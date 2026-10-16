@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "notes_total": 2246,
-  "shared_practice_total": 3083,
+  "notes_total": 2262,
+  "shared_practice_total": 3099,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
@@ -9,7 +9,7 @@
     "Costing": 554,
     "Income Tax": 240,
     "GST": 216,
-    "Computer": 68
+    "Computer": 84
   },
   "batches": [
     {
@@ -327,8 +327,8 @@
     {
       "batch": 53,
       "subject": "Computer",
-      "questions": 32,
-      "chapters": "CI4 Database Concepts / CI5 Information Security and Cyber Safety / CI6 Ecommerce Efiling Digital Payments / CI7 Emerging Technology in Accounting"
+      "questions": 48,
+      "chapters": "CI4 Database Concepts / CI5 Information Security and Controls / CI5 Information Security and Cyber Safety / CI6 Ecommerce Efiling Digital Payments / CI7 Emerging Technology in Accounting"
     }
   ]
 }
