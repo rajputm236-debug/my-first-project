@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "notes_total": 1998,
-  "shared_practice_total": 2835,
+  "notes_total": 2006,
+  "shared_practice_total": 2843,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
-    "Costing": 470,
+    "Costing": 478,
     "Income Tax": 160,
     "GST": 144,
     "Computer": 56
@@ -153,7 +153,7 @@
     {
       "batch": 24,
       "subject": "Costing",
-      "questions": 17,
+      "questions": 25,
       "chapters": "Ch 33A Marginal-CVP / Ch 33B MultiProd-Graphs"
     },
     {
