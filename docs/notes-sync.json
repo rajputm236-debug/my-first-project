@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "notes_total": 1954,
-  "shared_practice_total": 2791,
+  "notes_total": 1966,
+  "shared_practice_total": 2803,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
-    "Costing": 426,
+    "Costing": 438,
     "Income Tax": 160,
     "GST": 144,
     "Computer": 56
@@ -129,7 +129,7 @@
     {
       "batch": 20,
       "subject": "Costing",
-      "questions": 29,
+      "questions": 41,
       "chapters": "Ch 24 ABC / Ch 25 Cost-Bookkeeping / Ch 26 Reconciliation"
     },
     {
