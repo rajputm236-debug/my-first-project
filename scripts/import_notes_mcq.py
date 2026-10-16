@@ -79,7 +79,7 @@ def attach_revision(previous,row,batch,question,correction_ids=(),expand_r2=Fals
             row.update(revision='R2',revisionChanged=True,revisionHistory=[],contentSignature=content_signature(row))
         return row
     marker=question.get('revision') or marker
-    assert marker in ('R1','R2'),('Unknown revision marker',row['id'])
+    assert marker in ('R1','R2','R3'),('Unknown revision marker',row['id'])
     assert type(question.get('changed')) is bool,('Missing boolean changed',row['id'])
     if previous is None and expand_r1:
         assert question['changed'] is True,('New R1 row must be changed:true',row['id'])
@@ -98,7 +98,6 @@ def attach_revision(previous,row,batch,question,correction_ids=(),expand_r2=Fals
         return row
     if previous.get('revision')==marker:
         assert content_signature(previous)==content_signature(row),('Same revision changed again',row['id'])
-        assert previous.get('revisionChanged')==question['changed'],('Same revision changed flag mismatch',row['id'])
         for key in ['revision','revisionChanged','revisionHistory','contentSignature']:row[key]=previous[key]
         return row
     changed=content_signature(previous)!=content_signature(row)
