@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "notes_total": 1886,
-  "shared_practice_total": 2723,
+  "notes_total": 1898,
+  "shared_practice_total": 2735,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
-    "Auditing": 192,
+    "Auditing": 204,
     "Costing": 418,
     "Income Tax": 160,
     "GST": 144,
@@ -285,7 +285,7 @@
     {
       "batch": 46,
       "subject": "Auditing",
-      "questions": 24,
+      "questions": 36,
       "chapters": "AU4 Evidence Sampling Documentation / AU5 Vouching / AU6 Verification and Valuation"
     },
     {
