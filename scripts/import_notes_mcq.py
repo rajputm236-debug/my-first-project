@@ -57,7 +57,7 @@ def content_signature(row):
     clean=lambda text:re.sub(r'\s+',' ',str(text)).strip()
     payload=[clean(row['question']),[clean(v) for v in options],answer,clean(row['explanation'])]
     return hashlib.sha256(json.dumps(payload,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
-def attach_revision(previous,row,batch,question,correction_ids=(),expand_r2=False):
+def attach_revision(previous,row,batch,question,correction_ids=(),expand_r2=False,expand_r1=False):
     marker=batch.get('revision')
     if not marker:
         assert not question.get('revision') and 'changed' not in question,('Question revision requires batch revision',row['id'])
@@ -80,6 +80,10 @@ def attach_revision(previous,row,batch,question,correction_ids=(),expand_r2=Fals
         return row
     assert marker=='R1' and question.get('revision')==marker,('Revision markers disagree',row['id'])
     assert type(question.get('changed')) is bool,('Missing boolean changed',row['id'])
+    if previous is None and expand_r1:
+        assert question['changed'] is True,('New R1 row must be changed:true',row['id'])
+        row.update(revision='R1',revisionChanged=True,revisionHistory=[],contentSignature=content_signature(row))
+        return row
     assert previous is not None,('Revision must reference existing ID',row['id'])
     if previous.get('revision')==marker and content_signature(previous)!=content_signature(row) and row['id'] in correction_ids:
         history=list(previous.get('revisionHistory',[]))
@@ -110,7 +114,9 @@ def main():
     ap.add_argument('export',type=pathlib.Path);ap.add_argument('--subject',choices=['accounting',*MAP],required=True)
     ap.add_argument('--correct-ids',nargs='*',default=[],help='Explicit reviewed same-revision correction IDs; all other changed R1 rows are rejected')
     ap.add_argument('--expand-r2',action='store_true',help='Explicit append-only R2 expansion; every core ID and content must remain unchanged')
-    args=ap.parse_args(); source=json.loads(args.export.read_text())
+    ap.add_argument('--expand-r1',action='store_true',help='Explicit full-core R1 replacement plus contiguous new appended IDs')
+    args=ap.parse_args();
+    assert not (args.expand_r1 and args.expand_r2), 'Choose one expansion mode'; source=json.loads(args.export.read_text())
     rows=[];batch_counts=collections.Counter()
     for b in source['batches']:
         assert len(b['questions'])==b['question_count'], ('source count',b['batch'])
@@ -132,8 +138,9 @@ def main():
         for number in {b['batch'] for b,q in rows if b.get('revision')}:
             current={q['id'] for q in published if (q.get('batch')==f'b{number}' if args.subject=='accounting' else q.get('batchNumber')==number and q['subject']==MAP[args.subject][0])}
             supplied={f"b{number}-q{q['q_no']}" if args.subject=='accounting' else f"notes-b{number:03d}-q{q['q_no']:03d}" for b,q in rows if b['batch']==number}
-            if args.expand_r2:
-                assert args.subject!='accounting' and all(b.get('revision')=='R2' for b,q in rows), 'R2 expansion requires shared-bank R2 export'
+            if args.expand_r2 or args.expand_r1:
+                expected='R2' if args.expand_r2 else 'R1'
+                assert args.subject!='accounting' and all(b.get('revision')==expected for b,q in rows), 'Expansion requires matching shared-bank revision export'
                 assert current and current<supplied,('R2 must retain all core IDs and add new ones',number)
                 prior_numbers={int(ident.rsplit('q',1)[1]) for ident in current}
                 added_numbers={int(ident.rsplit('q',1)[1]) for ident in supplied-current}
@@ -148,7 +155,7 @@ def main():
             ident=f"b{q['batch']}-q{q['q_no']}"
             row={'id':ident,'batch':f"b{q['batch']}",'number':q['q_no'],'chapter':q['tag'],
                  'question':q['question'],'options':q['options'],'answer':q['correct'],'explanation':q['explanation']}
-            row=attach_revision(byid.get(ident),row,b,q,args.correct_ids,args.expand_r2)
+            row=attach_revision(byid.get(ident),row,b,q,args.correct_ids,args.expand_r2,args.expand_r1)
             new.append(row)
         # Do not remove an older imported batch when a later export is partial.
         newids={q['id'] for q in new};new= [q for q in old if q['id'] not in newids]+new
@@ -184,7 +191,7 @@ def main():
                  'explanation':q['explanation'],'source':f"Original practice from JVVNL JA Notes MCQ - {b['subject']} Batch {q['batch']}",
                  'sourceVersion':f"Notes MCQ Batch {q['batch']}",'batchNumber':q['batch'],'chapter':q['chapter'],
                  'answerVerification':'Source answer retained; not independently verified'}
-            row=attach_revision(byid.get(ident),row,b,q,args.correct_ids,args.expand_r2)
+            row=attach_revision(byid.get(ident),row,b,q,args.correct_ids,args.expand_r2,args.expand_r1)
             new.append(row)
         replacements={q['id']:q for q in new};merged=[replacements.pop(q['id'],q) for q in old]+list(replacements.values());bank['questions']=merged
         assert len({q['id'] for q in merged})==len(merged)
