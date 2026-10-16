@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "notes_total": 2150,
-  "shared_practice_total": 2987,
+  "notes_total": 2162,
+  "shared_practice_total": 2999,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
     "Auditing": 252,
     "Costing": 554,
-    "Income Tax": 228,
+    "Income Tax": 240,
     "GST": 144,
     "Computer": 56
   },
@@ -237,7 +237,7 @@
     {
       "batch": 38,
       "subject": "Income Tax",
-      "questions": 24,
+      "questions": 36,
       "chapters": "IT17 Returns-Appeals / IT18 Tax Planning / IT19 Transfer Pricing"
     },
     {
