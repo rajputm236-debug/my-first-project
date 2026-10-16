@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "notes_total": 1758,
-  "shared_practice_total": 2595,
+  "notes_total": 1782,
+  "shared_practice_total": 2619,
   "accounting_notes_total": 916,
   "subject_counts": {
     "Accounting": 916,
-    "Auditing": 120,
+    "Auditing": 144,
     "Costing": 418,
     "Income Tax": 160,
     "GST": 144
@@ -304,6 +304,12 @@
       "subject": "Auditing",
       "questions": 24,
       "chapters": "AU12B Audit of Banks / AU12C Secretarial Audit and NFRA / AU12D Audit of Insurance Companies"
+    },
+    {
+      "batch": 50,
+      "subject": "Auditing",
+      "questions": 24,
+      "chapters": "AU13 Audit in a Computer Environment / AU14 Liability, Audit Committee, Investigation / CAU1 Cost Audit I"
     }
   ]
 }
