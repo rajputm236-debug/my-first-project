@@ -57,7 +57,7 @@ function vLogin(){document.getElementById('navbar').classList.add('hidden');docu
   document.getElementById('forgotL').onclick=async(e)=>{e.preventDefault();
     const email=document.getElementById('fEmail').value.trim(),msg=document.getElementById('authMsg');
     if(!email){msg.textContent='Pehle apna email upar daalo.';msg.classList.remove('hidden');return;}
-    const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://rajputm236-debug.github.io/my-first-project/portal.html'});
+    const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://rajputm236-debug.github.io/my-first-project/portal.html?v=p10'});
     msg.classList.remove('hidden');
     if(error){msg.textContent=error.message;}else{msg.textContent='Reset link bhej diya. Email kholo, link dabao, naya password set karo.';msg.classList.add('ok');}};
   document.getElementById('goBtn').onclick=async()=>{
