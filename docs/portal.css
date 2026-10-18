@@ -67,3 +67,4 @@ td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
 .barbg{height:6px;background:var(--glass2);border-radius:4px;margin-top:5px;overflow:hidden}
 .barfill{height:100%;background:var(--good);border-radius:4px}
 .barfill.warn{background:var(--warn)}
+.avatar{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;color:#fff;font-weight:700;font-size:14px;flex-shrink:0}

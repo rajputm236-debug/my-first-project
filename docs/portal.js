@@ -240,6 +240,9 @@ function fmtAgo(iso){if(!iso)return 'kabhi nahi';
   if(d<1/24)return 'abhi abhi'; if(d<1)return Math.floor(d*24)+'h pehle';
   if(d<2)return 'kal'; if(d<30)return Math.floor(d)+' din pehle';
   return new Date(iso).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
+function avatar(name,email){const t=(name||email||'?').trim();const init=t.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  let h=0;for(const c of t)h=(h*31+c.charCodeAt(0))%360;
+  return `<span class="avatar" style="background:hsl(${h},55%,42%)">${esc(init)}</span>`;}
 function statCard(v,l,sub){return `<div class="statcard"><div class="statv">${v}</div><div class="statl">${l}</div>${sub?`<div class="statsub">${sub}</div>`:''}</div>`;}
 function barChart(seriesA,seriesB){
   const W=340,H=150,PL=26,PB=22,PT=10,n=seriesA.length;
@@ -277,25 +280,28 @@ async function vAdmin(){nav('admin');
   function rowHtml(u){
     const chk=sel.has(u.id)?'checked':'';
     const acc=u.answers?Math.round(100*u.correct/u.answers)+'%':'-';
+    const exp=u.is_paid&&u.paid_until&&new Date(u.paid_until)-Date.now()<15*86400000;
     return `<div class="urow" data-uid="${u.id}">
       <input type="checkbox" class="uchk" data-chk="${u.id}" ${chk}>
+      ${avatar(u.display_name,u.email)}
       <div class="umain"><b>${esc(u.display_name||'(naam nahi)')}</b> ${u.is_admin?'<span class="badge warn">ADMIN</span>':''}<br>
       <span class="muted">${esc(u.email||'')}</span><br>
       <span class="muted">${u.answers} ans · ${acc} · ${u.mocks} mocks · ${fmtAgo(u.last_active)}</span></div>
       <div class="uright"><span class="badge ${u.is_paid?'paid':'free'}">${u.is_paid?'PAID':'FREE'}</span>
+      ${exp?'<span class="badge warn">expiring</span>':''}
       ${u.is_paid&&u.paid_until?`<span class="muted small">${u.paid_until}</span>`:''}</div></div>`;}
 
   function render(){
     const list=filteredStudents();
     setApp(`
-    <div class="card"><h2>Admin Dashboard</h2><p class="muted">${ov.total} students · updated abhi</p></div>
+    <div class="card"><div class="row"><h2 style="flex:1">Admin Dashboard</h2><button class="chipbtn" id="aRefresh" type="button">Refresh</button></div><p class="muted">${ov.total} students · ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'short'})}</p></div>
     <div class="statgrid">
-      ${statCard(ov.total,'Students')}
-      ${statCard(ov.paid,'Paid')}
+      ${statCard(ov.total,'Students','+'+(ov.signups[ov.signups.length-1]||{n:0}).n+' aaj')}
+      ${statCard(ov.paid,'Paid',Math.round(100*ov.paid/Math.max(1,ov.total))+'%')}
       ${statCard(ov.free,'Free')}
       ${statCard(ov.active_today,'Active 24h')}
       ${statCard(ov.active_7d,'Active 7d')}
-      ${statCard(ov.mocks_done,'Mocks done',ov.answers+' answers')}
+      ${statCard(ov.mocks_done,'Mocks done',(ov.activity[ov.activity.length-1]||{n:0}).n+' ans aaj')}
     </div>
     <div class="card"><h3>Last 14 days</h3>${barChart(ov.signups,ov.activity)}</div>
     <div class="card"><h3>Students</h3>
@@ -324,6 +330,7 @@ async function vAdmin(){nav('admin');
   }
 
   function wire(){
+    document.getElementById('aRefresh').onclick=async()=>{setApp('<div class="card center muted">Refreshing…</div>');await refreshStudents();render();};
     document.getElementById('aSearch').oninput=e=>{q=e.target.value;render();const el=document.getElementById('aSearch');el.focus();el.setSelectionRange(el.value.length,el.value.length);};
     document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{filter=b.dataset.f;sel.clear();render();});
     document.querySelectorAll('[data-chk]').forEach(c=>c.onchange=e=>{e.stopPropagation();const id=c.dataset.chk;c.checked?sel.add(id):sel.delete(id);render();});
@@ -358,7 +365,7 @@ async function vAdmin(){nav('admin');
     const nm=s=>subjName(s);
     setApp(`
     <div class="card"><div class="row"><button class="chipbtn" id="backB" type="button">&lsaquo; Back</button><span class="sp"></span></div>
-      <h2>${esc(u.display_name||'(naam nahi)')}</h2>
+      <div class="row" style="gap:12px;align-items:center">${avatar(u.display_name,u.email)}<h2 style="margin:0">${esc(u.display_name||'(naam nahi)')}</h2></div>
       <p class="muted">${esc(u.email||'')}<br>Joined ${new Date(u.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · Last active ${fmtAgo(d.last_active)}</p>
       <div class="row mt" style="flex-wrap:wrap">
         <button class="chipbtn ${u.is_paid?'on':''}" id="dPaid" type="button">${u.is_paid?'PAID':'FREE'}</button>
