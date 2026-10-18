@@ -83,14 +83,14 @@ async function vSubject(slug){nav('home');await fetchSubjects();
   <a class="btn primary block" href="#/practice/${slug}">Practice</a>
   <a class="btn block" href="#/mocksetup/${slug}">Mock test</a></div>`);}
 
-async function vPractice(slug){nav('home');
+async function vPractice(slug){window.__dbg=['start'];nav('home');
   setApp('<div class="card center muted">Questions load ho rahe hain…</div>');
-  const qs=await fetchQuestions(slug);
-  const atts=await fetchAttempts();
+  const qs=await fetchQuestions(slug);window.__dbg.push('qs='+qs.length);
+  const atts=await fetchAttempts();window.__dbg.push('atts='+atts.length);
   const amap={};atts.forEach(a=>amap[a.question_id]=a);
   if(!qs.length){setApp('<div class="card center"><h3>No access</h3><p class="muted">Is subject ke questions abhi locked hain.</p><a class="btn block" href="#/home">Back</a></div>');return;}
   const sources=[...new Set(qs.map(q=>q.source).filter(Boolean))];
-  let idx=0,filter='all',src='all';
+  let idx=0,filter='all',src='all';window.__dbg.push('pre-render');
   const filtered=()=>qs.filter(q=>(src==='all'||q.source===src)&&(filter==='all'||(filter==='unanswered'&&amap[q.id]===undefined)||(filter==='wrong'&&amap[q.id]&&!amap[q.id].correct)||(filter==='correct'&&amap[q.id]&&amap[q.id].correct)));
   function render(){const list=filtered();if(idx>=list.length)idx=Math.max(0,list.length-1);
     const q=list[idx];
@@ -123,7 +123,7 @@ async function vMockSetup(slug){nav('home');await fetchSubjects();
   const{count}=await sb.from('mock_attempts').select('id',{count:'exact',head:true}).eq('user_id',S.session.user.id).eq('subject_slug',slug);
   const freeLeft=S.config.free_mock_per_subject?(count<1):false;
   if(!paid&&!freeLeft){setApp(`<div class="card center"><h3>Free mock used</h3><p class="muted">${esc(subjName(slug))} ka free mock ho chuka. Paid me unlimited mocks milte hain.</p><a class="btn block" href="#/subject/${slug}">Back</a></div>`);return;}
-  const qs=await fetchQuestions(slug);
+  const qs=await fetchQuestions(slug);window.__dbg.push('qs='+qs.length);
   const maxN=qs.length;
   setApp(`<div class="card"><h2>Mock - ${esc(subjName(slug))}</h2>
   <p class="muted">${paid?'Paid: apni pasand ka size.':'FREE mock: 25 questions, 25 minutes.'} Available: ${maxN} questions.</p>
@@ -200,7 +200,7 @@ async function vMockReview(id){nav('home');
 
 async function vDashboard(){nav('dashboard');await fetchSubjects();
   setApp('<div class="card center muted">Dashboard load ho raha hai…</div>');
-  const atts=await fetchAttempts();
+  const atts=await fetchAttempts();window.__dbg.push('atts='+atts.length);
   const paid=isPaid();
   const per={};atts.forEach(a=>{per[a.subject_slug]=per[a.subject_slug]||{n:0,c:0};per[a.subject_slug].n++;if(a.correct)per[a.subject_slug].c++;});
   const totalA=atts.length,totalC=atts.filter(a=>a.correct).length;
@@ -280,5 +280,6 @@ async function route(){const h=location.hash||'#/home';
 document.getElementById('logoutBtn').onclick=async()=>{await sb.auth.signOut();S.profile=null;S.qcache={};S.subjects=null;location.hash='#/login';route();};
 window.addEventListener('hashchange',route);
 sb.auth.onAuthStateChange((e,s)=>{if(e==='SIGNED_IN'||e==='SIGNED_OUT')S.qcache={};S.session=s;});
+window.addEventListener('unhandledrejection',e=>{window.__rej=(e.reason&&(e.reason.stack||e.reason.message))||String(e.reason);});
 route();
 })();
