@@ -277,8 +277,8 @@ async function route(){const h=location.hash||'#/home';
   if(view==='dashboard')return vDashboard();
   if(view==='admin')return vAdmin();
   return vHome();}
-document.getElementById('logoutBtn').onclick=async()=>{await sb.auth.signOut();S.profile=null;location.hash='#/login';route();};
+document.getElementById('logoutBtn').onclick=async()=>{await sb.auth.signOut();S.profile=null;S.qcache={};S.subjects=null;location.hash='#/login';route();};
 window.addEventListener('hashchange',route);
-sb.auth.onAuthStateChange((_e,s)=>{S.session=s;});
+sb.auth.onAuthStateChange((e,s)=>{if(e==='SIGNED_IN'||e==='SIGNED_OUT')S.qcache={};S.session=s;});
 route();
 })();
