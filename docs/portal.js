@@ -6,7 +6,22 @@ const app=document.getElementById('app');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const md=s=>esc(s||'').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
 let S={session:null,profile:null,subjects:null,config:{free_question_count:50,free_mock_per_subject:true,paid_validity_days:120},qcache:{}};
-const isPaid=()=>!!(S.profile&&(S.profile.is_admin||(S.profile.is_paid&&(!S.profile.paid_until||S.profile.paid_until>=new Date().toISOString().slice(0,10)))));
+const isPaid=()=>!!(S.profile&&(S.profile.is_admin||(S.profile.is_paid&&(!S.profile.paid_until||new Date(S.profile.paid_until).getTime()>Date.now()))));
+const activePlan=u=>!!(u&&u.is_paid&&(!u.paid_until||new Date(u.paid_until).getTime()>Date.now()));
+const planStatus=u=>{
+  if(!u.is_paid)return{t:'FREE',c:'free'};
+  if(!u.paid_until)return{t:'LIFETIME',c:'paid'};
+  const d=Math.ceil((new Date(u.paid_until).getTime()-Date.now())/86400000);
+  if(d<0)return{t:'EXPIRED',c:'warn'};
+  return{t:'PAID · '+d+'d',c:'paid'}};
+const planChip=()=>{
+  const p=S.profile;if(!p)return '';
+  if(p.is_admin)return '<span class="badge paid">ADMIN ACCESS</span>';
+  if(!p.is_paid)return '';
+  if(!p.paid_until)return '<span class="badge paid">LIFETIME ACCESS</span>';
+  const d=Math.ceil((new Date(p.paid_until).getTime()-Date.now())/86400000);
+  if(d<0)return '<span class="badge warn">Plan khatam ho gaya</span>';
+  return `<span class="badge ${d<=7?'warn':'paid'}">${d} din bache</span>`;};
 const isAdmin=()=>!!(S.profile&&S.profile.is_admin);
 
 async function fetchProfile(){const{data}=await sb.from('profiles').select('*').eq('id',S.session.user.id).single();S.profile=data;
@@ -80,9 +95,9 @@ async function vHome(){nav('home');await fetchSubjects();
   const{data:openMocks}=await sb.from('mock_attempts').select('id,subject_slug,started_at').eq('user_id',S.session.user.id).eq('status','in_progress').order('started_at',{ascending:false}).limit(1);
   setApp(`${note?`<div class="notice ok">${esc(note)}</div>`:''}
   ${openMocks&&openMocks.length?`<div class="card"><h3>Paused mock</h3><p class="muted">${esc(subjName(openMocks[0].subject_slug))} - chalu hai</p><a class="btn primary block" href="#/mockrun/${openMocks[0].id}">Resume mock</a></div>`:''}
-  <div class="card"><h2>Subjects</h2><p class="muted">${paid?'Full access: saare questions aur unlimited mocks.':'Free access: har subject me pehle '+S.config.free_question_count+' questions + 1 free mock.'}</p></div>
+  <div class="card"><div class="row"><h2 style="flex:1;margin:0">Subjects</h2>${planChip()}</div><p class="muted">${paid?'Full access: saare questions aur unlimited mocks.':'Free access: har subject me pehle '+S.config.free_question_count+' questions + 1 free mock.'}</p></div>
   <div id="subjList">${S.subjects.map(s=>`<div class="subj" data-slug="${s.slug}"><div class="nm"><b>${esc(s.name)}</b><span class="muted">${paid?'Full bank':'Free: '+s.free_question_count+' Q'}</span></div>${paid?'<span class="badge paid">PAID</span>':'<span class="badge free">FREE</span>'}</div>`).join('')}</div>
-  ${!paid?'<div class="card center"><h3>Unlock full access</h3><p class="muted">Saare 6,400+ questions, unlimited mocks, weak-topic analysis, rank. Full access ke liye Topper Haveli admin se contact karo.</p></div>':''}`);
+  ${!paid?`<div class="card center"><h3>${S.profile&&S.profile.is_paid?'Plan khatam ho gaya':'Unlock full access'}</h3><p class="muted">Saare 6,400+ questions, unlimited mocks, weak-topic analysis, rank. ${S.profile&&S.profile.is_paid?'Renew ke liye':'Full access ke liye'} Topper Haveli admin se contact karo.</p></div>`:''}`);
   document.querySelectorAll('.subj').forEach(d=>d.onclick=()=>{location.hash='#/subject/'+d.dataset.slug;});}
 
 async function vSubject(slug){nav('home');await fetchSubjects();
@@ -227,7 +242,7 @@ async function vDashboard(){nav('dashboard');await fetchSubjects();
     const weak=Object.entries(bySrc).filter(([,v])=>v.n>=5).map(([k,v])=>({k,pct:Math.round(100*v.c/v.n),n:v.n})).sort((a,b)=>a.pct-b.pct).slice(0,5);
     paidHtml=`<div class="card"><h3>Weak topics (paid)</h3>${weak.length?weak.map(w=>`<div class="row"><span style="flex:1">${esc(w.k)}</span><span class="badge ${w.pct<50?'warn':'free'}">${w.pct}%</span><span class="muted">${w.n} Q</span></div>`).join(''):'<p class="muted">Thodi aur practice karo, phir analysis dikhega.</p>'}</div>
     <div class="card"><h3>Rank (paid)</h3><div class="grid2">${rankHtml}<div class="stat"><b>${totalA}</b><span>Total answered</span></div></div></div>`;}
-  setApp(`<div class="card"><h2>Dashboard</h2>
+  setApp(`<div class="card"><div class="row"><h2 style="flex:1;margin:0">Dashboard</h2>${planChip()}</div>
     <div class="grid2 mt"><div class="stat"><b>${totalC}/${totalA}</b><span>Correct</span></div><div class="stat"><b>${totalA?Math.round(100*totalC/totalA):0}%</b><span>Accuracy</span></div>
     <div class="stat"><b>${streak}</b><span>Day streak</span></div><div class="stat"><b>${(mocks||[]).length}</b><span>Mocks done</span></div></div></div>
   <div class="card"><h3>Subject-wise</h3>${S.subjects.filter(s=>per[s.slug]).map(s=>`<div class="row"><span style="flex:1">${esc(s.name)}</span><span class="muted">${per[s.slug].c}/${per[s.slug].n} · ${Math.round(100*per[s.slug].c/per[s.slug].n)}%</span></div>`).join('')||'<p class="muted">Abhi koi practice nahi.</p>'}</div>
@@ -271,25 +286,26 @@ async function vAdmin(){nav('admin');
   function filteredStudents(){
     const t=q.trim().toLowerCase();
     return students.filter(u=>{
-      if(filter==='paid'&&!u.is_paid)return false;
-      if(filter==='free'&&u.is_paid)return false;
-      if(filter==='expiring'&&!(u.is_paid&&u.paid_until&&new Date(u.paid_until)-Date.now()<15*86400000))return false;
+      if(filter==='paid'&&!activePlan(u))return false;
+      if(filter==='free'&&activePlan(u))return false;
+      if(filter==='expiring'&&!(activePlan(u)&&u.paid_until&&new Date(u.paid_until).getTime()-Date.now()<15*86400000))return false;
+      if(filter==='expired'&&!(u.is_paid&&u.paid_until&&new Date(u.paid_until).getTime()<=Date.now()))return false;
       if(t&&!(u.email||'').toLowerCase().includes(t)&&!(u.display_name||'').toLowerCase().includes(t))return false;
       return true;});}
 
   function rowHtml(u){
     const chk=sel.has(u.id)?'checked':'';
     const acc=u.answers?Math.round(100*u.correct/u.answers)+'%':'-';
-    const exp=u.is_paid&&u.paid_until&&new Date(u.paid_until)-Date.now()<15*86400000;
+    const st=planStatus(u);
+    const expiring=activePlan(u)&&u.paid_until&&new Date(u.paid_until).getTime()-Date.now()<15*86400000;
     return `<div class="urow" data-uid="${u.id}">
       <input type="checkbox" class="uchk" data-chk="${u.id}" ${chk}>
       ${avatar(u.display_name,u.email)}
       <div class="umain"><b>${esc(u.display_name||'(naam nahi)')}</b> ${u.is_admin?'<span class="badge warn">ADMIN</span>':''}<br>
       <span class="muted">${esc(u.email||'')}</span><br>
       <span class="muted">${u.answers} ans · ${acc} · ${u.mocks} mocks · ${fmtAgo(u.last_active)}</span></div>
-      <div class="uright"><span class="badge ${u.is_paid?'paid':'free'}">${u.is_paid?'PAID':'FREE'}</span>
-      ${exp?'<span class="badge warn">expiring</span>':''}
-      ${u.is_paid&&u.paid_until?`<span class="muted small">${u.paid_until}</span>`:''}</div></div>`;}
+      <div class="uright"><span class="badge ${st.c}">${st.t}</span>
+      ${(expiring||st.t==='EXPIRED')?`<button class="chipbtn smallbtn" data-renew="${u.id}" type="button">&#8635;+30d</button>`:''}</div></div>`;}
 
   function render(){
     const list=filteredStudents();
@@ -299,6 +315,7 @@ async function vAdmin(){nav('admin');
       ${statCard(ov.total,'Students','+'+(ov.signups[ov.signups.length-1]||{n:0}).n+' aaj')}
       ${statCard(ov.paid,'Paid',Math.round(100*ov.paid/Math.max(1,ov.total))+'%')}
       ${statCard(ov.free,'Free')}
+      ${statCard(ov.expired||0,'Expired')}
       ${statCard(ov.active_today,'Active 24h')}
       ${statCard(ov.active_7d,'Active 7d')}
       ${statCard(ov.mocks_done,'Mocks done',(ov.activity[ov.activity.length-1]||{n:0}).n+' ans aaj')}
@@ -306,7 +323,7 @@ async function vAdmin(){nav('admin');
     <div class="card"><h3>Last 14 days</h3>${barChart(ov.signups,ov.activity)}</div>
     <div class="card"><h3>Students</h3>
       <input id="aSearch" type="search" placeholder="Naam ya email se dhundo…" value="${esc(q)}">
-      <div class="row mt" style="flex-wrap:wrap">${[['all','Sab'],['paid','Paid'],['free','Free'],['expiring','Expiring <15d']].map(f=>`<button class="chipbtn ${filter===f[0]?'on':''}" data-f="${f[0]}" type="button">${f[1]}</button>`).join('')}</div>
+      <div class="row mt" style="flex-wrap:wrap">${[['all','Sab'],['paid','Paid'],['free','Free'],['expiring','Expiring <15d'],['expired','Expired']].map(f=>`<button class="chipbtn ${filter===f[0]?'on':''}" data-f="${f[0]}" type="button">${f[1]}</button>`).join('')}</div>
       <div class="mt">${list.map(rowHtml).join('')||'<p class="muted center">Koi student nahi mila.</p>'}</div>
     </div>
     <div class="card"><h3>Subject-wise usage</h3>
@@ -321,9 +338,9 @@ async function vAdmin(){nav('admin');
     </div>
     <div class="bulkbar ${sel.size?'':'hidden'}" id="bulkBar">
       <span>${sel.size} selected</span>
-      <button class="chipbtn on" id="bulkPaid" type="button">Mark PAID</button>
-      <button class="chipbtn" id="bulkFree" type="button">Mark free</button>
-      <button class="chipbtn" id="bulkExt" type="button">+${defDays}d</button>
+      <select id="bulkPlan" style="width:auto"><option value="30">30d</option><option value="90">90d</option><option value="180">180d</option><option value="365">365d</option><option value="life">Lifetime</option></select>
+      <button class="chipbtn on" id="bulkApply" type="button">Plan do</button>
+      <button class="chipbtn" id="bulkRevoke" type="button">Revoke</button>
       <button class="chipbtn" id="bulkClear" type="button">✕</button>
     </div>`);
     wire();
@@ -338,9 +355,17 @@ async function vAdmin(){nav('admin');
     document.querySelectorAll('.urow').forEach(r=>r.onclick=e=>{if(e.target.dataset.chk)return;detailId=r.dataset.uid;renderDetail();});
     const bb=document.getElementById('bulkBar');
     document.getElementById('bulkClear').onclick=()=>{sel.clear();render();};
-    document.getElementById('bulkPaid').onclick=async()=>{await sb.rpc('admin_bulk_paid',{p_ids:[...sel],p_paid:true,p_days:defDays});await refreshStudents();sel.clear();render();};
-    document.getElementById('bulkFree').onclick=async()=>{await sb.rpc('admin_bulk_paid',{p_ids:[...sel],p_paid:false});await refreshStudents();sel.clear();render();};
-    document.getElementById('bulkExt').onclick=async()=>{await sb.rpc('admin_extend',{p_ids:[...sel],p_days:defDays});await refreshStudents();sel.clear();render();};
+    document.getElementById('bulkApply').onclick=async()=>{
+      const v=document.getElementById('bulkPlan').value;
+      const{error}=await sb.rpc('admin_grant_plan',{p_ids:[...sel],p_days:v==='life'?null:Number(v),p_kind:'plan'});
+      if(error){alert(error.message);return;}
+      await refreshStudents();sel.clear();render();};
+    document.getElementById('bulkRevoke').onclick=async()=>{
+      if(!confirm(sel.size+' students ka paid access revoke karein?'))return;
+      await sb.rpc('admin_revoke',{p_ids:[...sel]});await refreshStudents();sel.clear();render();};
+    document.querySelectorAll('[data-renew]').forEach(b=>b.onclick=async e=>{e.stopPropagation();
+      await sb.rpc('admin_grant_plan',{p_ids:[b.dataset.renew],p_days:30,p_kind:'renew'});
+      await refreshStudents();render();});
     document.querySelectorAll('[data-free]').forEach(()=>{});
     document.getElementById('saveCfg').onclick=async()=>{
       const msg=document.getElementById('cfgMsg');msg.classList.add('hidden');msg.classList.remove('ok');
@@ -368,11 +393,33 @@ async function vAdmin(){nav('admin');
     <div class="card"><div class="row"><button class="chipbtn" id="backB" type="button">&lsaquo; Back</button><span class="sp"></span></div>
       <div class="row" style="gap:12px;align-items:center">${avatar(u.display_name,u.email)}<h2 style="margin:0">${esc(u.display_name||'(naam nahi)')}</h2></div>
       <p class="muted">${esc(u.email||'')}<br>Joined ${new Date(u.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · Last active ${fmtAgo(d.last_active)}</p>
-      <div class="row mt" style="flex-wrap:wrap">
-        <button class="chipbtn ${u.is_paid?'on':''}" id="dPaid" type="button">${u.is_paid?'PAID':'FREE'}</button>
-        <button class="chipbtn" id="dExt" type="button">Extend +${defDays}d</button>
-        <input type="date" id="dUntil" value="${u.paid_until||''}" style="width:140px;padding:6px">
-      </div><div class="notice hidden" id="dMsg"></div></div>
+      <p class="mt"><span class="badge ${planStatus(u).c}">${planStatus(u).t}</span>
+        ${u.is_paid&&u.paid_until?`<span class="muted small"> valid till ${new Date(u.paid_until).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</span>`:''}
+        ${u.trial_used?'<span class="badge">trial used</span>':''}</p>
+      <div class="planbox">
+        <p class="muted small" style="margin:0 0 6px">Plan do (ek tap):</p>
+        <div class="row" style="flex-wrap:wrap;gap:8px">
+          ${[['30','30 din'],['90','90 din'],['180','180 din'],['365','1 saal'],['life','Lifetime']].map(x=>`<button class="chipbtn" data-plan="${x[0]}" type="button">${x[1]}</button>`).join('')}
+          ${u.trial_used?'':[['3','Trial 3d'],['7','Trial 7d']].map(x=>`<button class="chipbtn" data-trial="${x[0]}" type="button">${x[1]}</button>`).join('')}
+        </div>
+        <div class="row" style="gap:8px;align-items:center">
+          <input id="pCustom" type="number" min="1" placeholder="Custom din" style="width:110px;padding:7px;margin:0">
+          <button class="chipbtn" id="pCustomGo" type="button">Custom do</button>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <input id="pAmt" placeholder="Amount (e.g. 199)" style="width:110px;padding:7px;margin:0">
+          <input id="pMode" placeholder="Mode (cash/UPI)" style="width:130px;padding:7px;margin:0">
+          <input id="pNote" placeholder="Note (optional)" style="flex:1;min-width:120px;padding:7px;margin:0">
+        </div>
+        <p class="muted small" style="margin:8px 0 6px">Adjust:</p>
+        <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="pAdj" type="number" placeholder="Din (+/-)" style="width:100px;padding:7px;margin:0">
+          <button class="chipbtn" id="pAdjGo" type="button">Apply</button>
+          <button class="chipbtn" id="pRevoke" type="button" style="border-color:var(--bad);color:var(--bad)">Revoke access</button>
+        </div>
+      </div>
+      <div class="notice hidden" id="dMsg"></div></div>
+    <div class="card"><h3>Plan history</h3><div id="pHist" class="muted small">Load ho raha hai…</div></div>
     <div class="statgrid">
       ${statCard(d.answers,'Answers')}
       ${statCard(acc+'%','Accuracy')}
@@ -393,21 +440,43 @@ async function vAdmin(){nav('admin');
     document.getElementById('backB').onclick=()=>{detailId=null;render();};
     const msg=document.getElementById('dMsg');
     const note=(t,ok)=>{msg.textContent=t;msg.classList.remove('hidden');msg.classList.toggle('ok',!!ok);};
-    document.getElementById('dPaid').onclick=async()=>{
-      const{error}=await sb.rpc('admin_bulk_paid',{p_ids:[u.id],p_paid:!u.is_paid,p_days:defDays});
+    const payFields=()=>({p_amount:document.getElementById('pAmt').value.trim()||null,
+      p_mode:document.getElementById('pMode').value.trim()||null,
+      p_note:document.getElementById('pNote').value.trim()||null});
+    const grant=async(days,kind)=>{
+      const{error}=await sb.rpc('admin_grant_plan',{p_ids:[u.id],p_days:days,p_kind:kind,...payFields()});
       if(error){note(error.message);return;}
-      u.is_paid=!u.is_paid;u.paid_until=u.is_paid?new Date(Date.now()+defDays*86400000).toISOString().slice(0,10):null;
-      note(u.is_paid?'PAID kar diya ('+u.paid_until+' tak).':'Free kar diya.',true);
-      document.getElementById('dPaid').textContent=u.is_paid?'PAID':'FREE';
-      document.getElementById('dPaid').classList.toggle('on',u.is_paid);
-      document.getElementById('dUntil').value=u.paid_until||'';refreshStudents();};
-    document.getElementById('dExt').onclick=async()=>{
-      const{error}=await sb.rpc('admin_extend',{p_ids:[u.id],p_days:defDays});
+      note(kind==='trial'?'Trial shuru ho gaya.':(days?days+' din ka plan lag gaya.':'Lifetime access de diya.'),true);
+      renderDetail();refreshStudents();};
+    document.querySelectorAll('[data-plan]').forEach(b=>b.onclick=()=>grant(b.dataset.plan==='life'?null:Number(b.dataset.plan),'plan'));
+    document.querySelectorAll('[data-trial]').forEach(b=>b.onclick=()=>grant(Number(b.dataset.trial),'trial'));
+    document.getElementById('pCustomGo').onclick=()=>{
+      const n=Number(document.getElementById('pCustom').value);
+      if(!n||n<1){note('Custom din daalo pehle.');return;}grant(n,'plan');};
+    document.getElementById('pAdjGo').onclick=async()=>{
+      const n=Number(document.getElementById('pAdj').value);
+      if(!n){note('Din daalo (+ extend, - reduce).');return;}
+      const{error}=await sb.rpc('admin_adjust_days',{p_ids:[u.id],p_days:n});
       if(error){note(error.message);return;}
-      note('Validity +'+defDays+' din extend ho gayi.',true);renderDetail();refreshStudents();};
-    document.getElementById('dUntil').onchange=async e=>{
-      await sb.from('profiles').update({paid_until:e.target.value||null}).eq('id',u.id);
-      note('Validity date saved.',true);refreshStudents();};
+      note((n>0?'+':'')+n+' din adjust ho gaya.',true);renderDetail();refreshStudents();};
+    document.getElementById('pRevoke').onclick=async()=>{
+      if(!confirm('Is student ka paid access revoke karein?'))return;
+      const{error}=await sb.rpc('admin_revoke',{p_ids:[u.id]});
+      if(error){note(error.message);return;}
+      note('Access revoke ho gaya (free pe aa gaya).',true);renderDetail();refreshStudents();};
+    sb.rpc('admin_plan_history',{p_id:u.id}).then(({data:hist})=>{
+      const el=document.getElementById('pHist');if(!el)return;
+      if(!hist||!hist.length){el.textContent='Abhi koi plan event nahi.';return;}
+      const al={plan:'Plan',trial:'Trial',extend:'Extend',reduce:'Reduce',revoke:'Revoke',renew:'Renew'};
+      el.classList.remove('muted');
+      el.innerHTML=hist.map(h=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);gap:8px;flex-wrap:wrap">
+        <span class="badge">${al[h.action]||h.action}</span>
+        ${h.days?`<span class="muted small">${h.days>0?'+':''}${h.days}d</span>`:''}
+        ${h.to_until?`<span class="muted small">→ ${new Date(h.to_until).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span>`:''}
+        ${h.amount?`<span class="muted small">₹${esc(h.amount)}${h.mode?' · '+esc(h.mode):''}</span>`:''}
+        ${h.note?`<span class="muted small">${esc(h.note)}</span>`:''}
+        <span class="sp"></span><span class="muted small">${new Date(h.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span>
+      </div>`).join('');});
   }
   render();
 }
