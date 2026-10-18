@@ -49,7 +49,7 @@ function vLogin(){document.getElementById('navbar').classList.add('hidden');docu
   <button class="btn primary block" id="goBtn" type="button">Login</button>
   <p class="center mt"><a href="#" id="forgotL">Forgot password?</a></p>
   <div class="notice hidden" id="authMsg"></div></div>
-  <p class="muted center mt">Free account: practice sets + 1 free mock per subject + basic dashboard.<br>Paid (ask Mahendra): all 6,400+ questions, unlimited mocks, weak-topic analysis, rank.</p>`);
+  <p class="muted center mt">Free account: practice sets + 1 free mock per subject + basic dashboard.<br>Paid: all 6,400+ questions, unlimited mocks, weak-topic analysis, rank.</p>`);
   let mode='in';
   const tab=m=>{mode=m;document.getElementById('tabIn').classList.toggle('on',m==='in');document.getElementById('tabUp').classList.toggle('on',m==='up');
     document.getElementById('nameRow').classList.toggle('hidden',m==='in');document.getElementById('goBtn').textContent=m==='in'?'Login':'Create account';};
@@ -82,7 +82,7 @@ async function vHome(){nav('home');await fetchSubjects();
   ${openMocks&&openMocks.length?`<div class="card"><h3>Paused mock</h3><p class="muted">${esc(subjName(openMocks[0].subject_slug))} - chalu hai</p><a class="btn primary block" href="#/mockrun/${openMocks[0].id}">Resume mock</a></div>`:''}
   <div class="card"><h2>Subjects</h2><p class="muted">${paid?'Full access: saare questions aur unlimited mocks.':'Free access: har subject me pehle '+S.config.free_question_count+' questions + 1 free mock.'}</p></div>
   <div id="subjList">${S.subjects.map(s=>`<div class="subj" data-slug="${s.slug}"><div class="nm"><b>${esc(s.name)}</b><span class="muted">${paid?'Full bank':'Free: '+s.free_question_count+' Q'}</span></div>${paid?'<span class="badge paid">PAID</span>':'<span class="badge free">FREE</span>'}</div>`).join('')}</div>
-  ${!paid?'<div class="card center"><h3>Unlock full access</h3><p class="muted">Saare 6,400+ questions, unlimited mocks, weak-topic analysis, rank. Mahendra se contact karo.</p></div>':''}`);
+  ${!paid?'<div class="card center"><h3>Unlock full access</h3><p class="muted">Saare 6,400+ questions, unlimited mocks, weak-topic analysis, rank. Full access ke liye Topper Haveli admin se contact karo.</p></div>':''}`);
   document.querySelectorAll('.subj').forEach(d=>d.onclick=()=>{location.hash='#/subject/'+d.dataset.slug;});}
 
 async function vSubject(slug){nav('home');await fetchSubjects();
@@ -413,6 +413,7 @@ async function vAdmin(){nav('admin');
 }
 
 async function route(){const h=location.hash||'#/home';
+  if(h.indexOf('type=recovery')>=0){S.recovery=true;vReset();return;}
   const{data}=await sb.auth.getSession();S.session=data.session;
   if(S.recovery){vReset();return;}
   if(!S.session){vLogin();return;}
