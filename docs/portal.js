@@ -414,6 +414,7 @@ async function vAdmin(){nav('admin');
 
 async function route(){const h=location.hash||'#/home';
   const{data}=await sb.auth.getSession();S.session=data.session;
+  if(S.recovery){vReset();return;}
   if(!S.session){vLogin();return;}
   if(!S.profile)await fetchProfile();
   if(!S.subjects)await fetchSubjects();
@@ -442,7 +443,7 @@ function vReset(){document.getElementById('navbar').classList.add('hidden');docu
     msg.classList.remove('hidden');
     if(error){msg.textContent=error.message;return;}
     msg.textContent='Password set ho gaya. Ab login karo.';msg.classList.add('ok');
-    await sb.auth.signOut();S.profile=null;S.qcache={};setTimeout(()=>{location.hash='#/login';route();},1200);};}
-sb.auth.onAuthStateChange((e,s)=>{if(e==='SIGNED_IN'||e==='SIGNED_OUT')S.qcache={};S.session=s;if(e==='PASSWORD_RECOVERY'){vReset();}});
+    S.recovery=false;await sb.auth.signOut();S.profile=null;S.qcache={};setTimeout(()=>{location.hash='#/login';route();},1200);};}
+sb.auth.onAuthStateChange((e,s)=>{if(e==='SIGNED_IN'||e==='SIGNED_OUT')S.qcache={};S.session=s;if(e==='PASSWORD_RECOVERY'){S.recovery=true;vReset();}});
 route();
 })();
