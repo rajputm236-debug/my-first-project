@@ -1,5 +1,5 @@
 (()=>{'use strict';
-const SUPA_URL='https://rfazwzduiclvoffokwon.supabase.co';
+const SUPA_URL='https://jvvnl-quiz-api.crypticfiles40.workers.dev';
 const SUPA_KEY='sb_publishable_D90wb1cJD2X6PjgIIa645Q_fofHiSku';
 const sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 const app=document.getElementById('app');
