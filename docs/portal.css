@@ -49,3 +49,21 @@ td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
 .hidden{display:none!important}
 .center{text-align:center}
 .mt{margin-top:14px}
+/* Admin dashboard */
+.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.statcard{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:12px 8px;text-align:center;backdrop-filter:blur(10px)}
+.statv{font-size:20px;font-weight:800}
+.statl{font-size:11px;color:var(--dim);margin-top:2px}
+.statsub{font-size:10px;color:var(--dim);margin-top:2px}
+.legend{font-size:11px;color:var(--dim);display:inline-flex;align-items:center;gap:5px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px}
+.urow{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:10px}
+.urow:active{background:var(--glass2)}
+.umain{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis}
+.uright{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.uchk{width:18px;height:18px;accent-color:var(--acc);flex-shrink:0}
+.small{font-size:11px}
+.bulkbar{position:sticky;bottom:64px;z-index:6;display:flex;gap:8px;align-items:center;background:rgba(17,26,51,.95);border:1px solid var(--acc);border-radius:999px;padding:8px 14px;margin:8px 0;font-size:13px;backdrop-filter:blur(12px);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.barbg{height:6px;background:var(--glass2);border-radius:4px;margin-top:5px;overflow:hidden}
+.barfill{height:100%;background:var(--good);border-radius:4px}
+.barfill.warn{background:var(--warn)}

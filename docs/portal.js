@@ -235,39 +235,174 @@ async function vDashboard(){nav('dashboard');await fetchSubjects();
   <div class="card"><h3>Mock history</h3>${(mocks||[]).map(mk=>`<div class="row"><span style="flex:1">${esc(subjName(mk.subject_slug))}</span><span class="muted">${(mk.completed_at||'').slice(0,10)}</span><a href="#/mockreview/${mk.id}"><span class="badge paid">${mk.score}/${mk.total}</span></a></div>`).join('')||'<p class="muted">Koi mock nahi.</p>'}</div>
   ${!paid?'<div class="card center"><p class="muted">Paid me: weak-topic analysis, rank, unlimited mocks, saare questions.</p></div>':''}`);}
 
+function fmtAgo(iso){if(!iso)return 'kabhi nahi';
+  const d=(Date.now()-new Date(iso).getTime())/86400000;
+  if(d<1/24)return 'abhi abhi'; if(d<1)return Math.floor(d*24)+'h pehle';
+  if(d<2)return 'kal'; if(d<30)return Math.floor(d)+' din pehle';
+  return new Date(iso).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
+function statCard(v,l,sub){return `<div class="statcard"><div class="statv">${v}</div><div class="statl">${l}</div>${sub?`<div class="statsub">${sub}</div>`:''}</div>`;}
+function barChart(seriesA,seriesB){
+  const W=340,H=150,PL=26,PB=22,PT=10,n=seriesA.length;
+  const max=Math.max(1,...seriesA.map(x=>x.n),...seriesB.map(x=>x.n));
+  const bw=(W-PL-6)/n;
+  const bars=(arr,color,dx)=>arr.map((d,i)=>{
+    const h=Math.max(d.n>0?2:0,(H-PT-PB)*d.n/max);
+    const x=PL+i*bw+dx,y=H-PB-h;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bw/2-2).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${color}"><title>${d.day}: ${d.n}</title></rect>`;}).join('');
+  const labels=seriesA.map((d,i)=>i%4===1?`<text x="${(PL+i*bw+bw/2).toFixed(1)}" y="${H-8}" font-size="9" fill="var(--dim)" text-anchor="middle">${d.day.slice(8)}/${d.day.slice(5,7)}</text>`:'').join('');
+  const grid=[0.25,0.5,0.75,1].map(f=>{const y=H-PB-(H-PT-PB)*f;
+    return `<line x1="${PL}" y1="${y}" x2="${W-4}" y2="${y}" stroke="var(--line)" stroke-width="0.5"/><text x="${PL-4}" y="${y+3}" font-size="8" fill="var(--dim)" text-anchor="end">${Math.round(max*f)}</text>`;}).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">${grid}${bars(seriesA,'#6d8dff',0)}${bars(seriesB,'#3ecf8e',bw/2)}${labels}</svg>
+  <div class="row" style="gap:14px;justify-content:center"><span class="legend"><i style="background:#6d8dff"></i>Signups</span><span class="legend"><i style="background:#3ecf8e"></i>Answers</span></div>`;}
+
 async function vAdmin(){nav('admin');
   if(!isAdmin()){setApp('<div class="card center muted">Admin only.</div>');return;}
-  const{data:users}=await sb.from('profiles').select('*').order('created_at',{ascending:false});
+  setApp('<div class="card center muted">Admin dashboard load ho raha hai…</div>');
+  const[{data:ov,error:e1},{data:students,error:e2},{data:usage}]=await Promise.all([
+    sb.rpc('admin_overview'),sb.rpc('admin_students'),sb.rpc('admin_subject_usage')]);
   await fetchSubjects();
+  if(e1||e2){setApp(`<div class="card center"><h3>Load nahi hua</h3><p class="muted">${esc((e1||e2).message)}</p></div>`);return;}
   const defDays=S.config.paid_validity_days||120;
-  setApp(`<div class="card"><h2>Admin</h2><p class="muted">${(users||[]).length} users</p></div>
-  <div class="card"><h3>Users</h3>
-  ${(users||[]).map(u=>`<div class="row" style="border-bottom:1px solid var(--line);padding:8px 0">
-    <div style="flex:1;min-width:140px"><b>${esc(u.display_name||'')}</b> ${u.is_admin?'<span class="badge warn">A</span>':''}<br><span class="muted">${esc(u.email||'')}</span></div>
-    <button class="chipbtn ${u.is_paid?'on':''}" data-paid="${u.id}" data-cur="${u.is_paid?1:0}" type="button">${u.is_paid?'PAID':'free'}</button>
-    <input type="date" data-until="${u.id}" value="${u.paid_until||''}" style="width:135px;padding:6px">
-  </div>`).join('')||'<p class="muted">No users yet.</p>'}
-  <p class="muted mt">Paid on karte hi validity default ${defDays} din set ho jayegi (date badal sakte ho).</p></div>
-  <div class="card"><h3>Free limits per subject</h3>
-  ${S.subjects.map(s=>`<div class="row"><span style="flex:1">${esc(s.name)}</span><input type="number" data-free="${s.slug}" value="${s.free_question_count}" style="width:90px;padding:6px"></div>`).join('')}
-  <button class="btn primary block" id="saveCfg" type="button">Save free limits</button>
-  <div class="notice hidden" id="cfgMsg"></div></div>`);
-  document.querySelectorAll('[data-paid]').forEach(b=>b.onclick=async()=>{
-    const id=b.dataset.paid,cur=b.dataset.cur==='1';
-    const until=cur?null:new Date(Date.now()+defDays*86400000).toISOString().slice(0,10);
-    const{error}=await sb.from('profiles').update({is_paid:!cur,paid_until:!cur?until:(document.querySelector(`[data-until="${id}"]`)||{}).value||null}).eq('id',id);
-    if(error){alert(error.message);return;}
-    b.dataset.cur=cur?'0':'1';b.classList.toggle('on',!cur);b.textContent=!cur?'PAID':'free';
-    if(!cur){const dt=document.querySelector(`[data-until="${id}"]`);if(dt)dt.value=until;}});
-  document.querySelectorAll('[data-until]').forEach(inp=>inp.onchange=async()=>{
-    const id=inp.dataset.until;await sb.from('profiles').update({paid_until:inp.value||null}).eq('id',id);});
-  document.getElementById('saveCfg').onclick=async()=>{
-    const msg=document.getElementById('cfgMsg');msg.classList.add('hidden');msg.classList.remove('ok');
-    for(const inp of document.querySelectorAll('[data-free]')){
-      const{error}=await sb.rpc('admin_set_free_count',{p_slug:inp.dataset.free,p_count:Number(inp.value)||0});
-      if(error){msg.textContent=error.message;msg.classList.remove('hidden');return;}}
-    S.subjects=null;await fetchSubjects();
-    msg.textContent='Saved. Free question counts update ho gaye.';msg.classList.remove('hidden');msg.classList.add('ok');};}
+  let q='',filter='all',sel=new Set(),detailId=null;
+
+  function filteredStudents(){
+    const t=q.trim().toLowerCase();
+    return students.filter(u=>{
+      if(filter==='paid'&&!u.is_paid)return false;
+      if(filter==='free'&&u.is_paid)return false;
+      if(filter==='expiring'&&!(u.is_paid&&u.paid_until&&new Date(u.paid_until)-Date.now()<15*86400000))return false;
+      if(t&&!(u.email||'').toLowerCase().includes(t)&&!(u.display_name||'').toLowerCase().includes(t))return false;
+      return true;});}
+
+  function rowHtml(u){
+    const chk=sel.has(u.id)?'checked':'';
+    const acc=u.answers?Math.round(100*u.correct/u.answers)+'%':'-';
+    return `<div class="urow" data-uid="${u.id}">
+      <input type="checkbox" class="uchk" data-chk="${u.id}" ${chk}>
+      <div class="umain"><b>${esc(u.display_name||'(naam nahi)')}</b> ${u.is_admin?'<span class="badge warn">ADMIN</span>':''}<br>
+      <span class="muted">${esc(u.email||'')}</span><br>
+      <span class="muted">${u.answers} ans · ${acc} · ${u.mocks} mocks · ${fmtAgo(u.last_active)}</span></div>
+      <div class="uright"><span class="badge ${u.is_paid?'paid':'free'}">${u.is_paid?'PAID':'FREE'}</span>
+      ${u.is_paid&&u.paid_until?`<span class="muted small">${u.paid_until}</span>`:''}</div></div>`;}
+
+  function render(){
+    const list=filteredStudents();
+    setApp(`
+    <div class="card"><h2>Admin Dashboard</h2><p class="muted">${ov.total} students · updated abhi</p></div>
+    <div class="statgrid">
+      ${statCard(ov.total,'Students')}
+      ${statCard(ov.paid,'Paid')}
+      ${statCard(ov.free,'Free')}
+      ${statCard(ov.active_today,'Active 24h')}
+      ${statCard(ov.active_7d,'Active 7d')}
+      ${statCard(ov.mocks_done,'Mocks done',ov.answers+' answers')}
+    </div>
+    <div class="card"><h3>Last 14 days</h3>${barChart(ov.signups,ov.activity)}</div>
+    <div class="card"><h3>Students</h3>
+      <input id="aSearch" type="search" placeholder="Naam ya email se dhundo…" value="${esc(q)}">
+      <div class="row mt" style="flex-wrap:wrap">${[['all','Sab'],['paid','Paid'],['free','Free'],['expiring','Expiring <15d']].map(f=>`<button class="chipbtn ${filter===f[0]?'on':''}" data-f="${f[0]}" type="button">${f[1]}</button>`).join('')}</div>
+      <div class="mt">${list.map(rowHtml).join('')||'<p class="muted center">Koi student nahi mila.</p>'}</div>
+    </div>
+    <div class="card"><h3>Subject-wise usage</h3>
+      ${(usage||[]).map(u=>`<div class="row" style="padding:7px 0;border-bottom:1px solid var(--line)"><span style="flex:1">${esc(u.name)}</span><span class="muted">${u.answers} ans · ${u.users} users · ${u.mocks} mocks</span></div>`).join('')}
+    </div>
+    <div class="card"><h3>Free preview settings</h3>
+      <p class="muted">Har subject me free users ko kitne questions milte hain.</p>
+      ${S.subjects.map(s=>`<div class="row"><span style="flex:1">${esc(s.name)}</span><input type="number" data-free="${s.slug}" value="${s.free_question_count}" style="width:90px;padding:6px"></div>`).join('')}
+      <div class="row mt"><span style="flex:1">Paid validity (din)</span><input type="number" id="validDays" value="${defDays}" style="width:90px;padding:6px"></div>
+      <button class="btn primary block mt" id="saveCfg" type="button">Save settings</button>
+      <div class="notice hidden" id="cfgMsg"></div>
+    </div>
+    <div class="bulkbar ${sel.size?'':'hidden'}" id="bulkBar">
+      <span>${sel.size} selected</span>
+      <button class="chipbtn on" id="bulkPaid" type="button">Mark PAID</button>
+      <button class="chipbtn" id="bulkFree" type="button">Mark free</button>
+      <button class="chipbtn" id="bulkExt" type="button">+${defDays}d</button>
+      <button class="chipbtn" id="bulkClear" type="button">✕</button>
+    </div>`);
+    wire();
+  }
+
+  function wire(){
+    document.getElementById('aSearch').oninput=e=>{q=e.target.value;render();const el=document.getElementById('aSearch');el.focus();el.setSelectionRange(el.value.length,el.value.length);};
+    document.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{filter=b.dataset.f;sel.clear();render();});
+    document.querySelectorAll('[data-chk]').forEach(c=>c.onchange=e=>{e.stopPropagation();const id=c.dataset.chk;c.checked?sel.add(id):sel.delete(id);render();});
+    document.querySelectorAll('.urow').forEach(r=>r.onclick=e=>{if(e.target.dataset.chk)return;detailId=r.dataset.uid;renderDetail();});
+    const bb=document.getElementById('bulkBar');
+    document.getElementById('bulkClear').onclick=()=>{sel.clear();render();};
+    document.getElementById('bulkPaid').onclick=async()=>{await sb.rpc('admin_bulk_paid',{p_ids:[...sel],p_paid:true,p_days:defDays});await refreshStudents();sel.clear();render();};
+    document.getElementById('bulkFree').onclick=async()=>{await sb.rpc('admin_bulk_paid',{p_ids:[...sel],p_paid:false});await refreshStudents();sel.clear();render();};
+    document.getElementById('bulkExt').onclick=async()=>{await sb.rpc('admin_extend',{p_ids:[...sel],p_days:defDays});await refreshStudents();sel.clear();render();};
+    document.querySelectorAll('[data-free]').forEach(()=>{});
+    document.getElementById('saveCfg').onclick=async()=>{
+      const msg=document.getElementById('cfgMsg');msg.classList.add('hidden');msg.classList.remove('ok');
+      for(const inp of document.querySelectorAll('[data-free]')){
+        const{error}=await sb.rpc('admin_set_free_count',{p_slug:inp.dataset.free,p_count:Number(inp.value)||0});
+        if(error){msg.textContent=error.message;msg.classList.remove('hidden');return;}}
+      const vd=Number(document.getElementById('validDays').value)||120;
+      await sb.from('app_config').upsert({key:'paid_validity_days',value:String(vd)});
+      S.config.paid_validity_days=vd;S.subjects=null;await fetchSubjects();
+      msg.textContent='Saved. Settings update ho gaye.';msg.classList.remove('hidden');msg.classList.add('ok');};
+  }
+
+  async function refreshStudents(){
+    const{data}=await sb.rpc('admin_students');
+    if(data){students.length=0;data.forEach(u=>students.push(u));}
+    const{data:o2}=await sb.rpc('admin_overview');if(o2)Object.assign(ov,o2);}
+
+  async function renderDetail(){
+    setApp('<div class="card center muted">Student details load ho rahe hain…</div>');
+    const{data:d,error}=await sb.rpc('admin_student_detail',{p_id:detailId});
+    if(error||!d||!d.profile){setApp('<div class="card center"><p class="muted">Load nahi hua.</p><button class="btn block" id="backB">Back</button></div>');document.getElementById('backB').onclick=render;return;}
+    const u=d.profile,acc=d.answers?Math.round(100*d.correct/d.answers):0;
+    const nm=s=>subjName(s);
+    setApp(`
+    <div class="card"><div class="row"><button class="chipbtn" id="backB" type="button">&lsaquo; Back</button><span class="sp"></span></div>
+      <h2>${esc(u.display_name||'(naam nahi)')}</h2>
+      <p class="muted">${esc(u.email||'')}<br>Joined ${new Date(u.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · Last active ${fmtAgo(d.last_active)}</p>
+      <div class="row mt" style="flex-wrap:wrap">
+        <button class="chipbtn ${u.is_paid?'on':''}" id="dPaid" type="button">${u.is_paid?'PAID':'FREE'}</button>
+        <button class="chipbtn" id="dExt" type="button">Extend +${defDays}d</button>
+        <input type="date" id="dUntil" value="${u.paid_until||''}" style="width:140px;padding:6px">
+      </div><div class="notice hidden" id="dMsg"></div></div>
+    <div class="statgrid">
+      ${statCard(d.answers,'Answers')}
+      ${statCard(acc+'%','Accuracy')}
+      ${statCard(d.mocks,'Mocks')}
+      ${statCard(fmtAgo(d.last_active),'Last active')}
+    </div>
+    <div class="card"><h3>Subject-wise</h3>
+      ${(d.by_subject||[]).map(b=>{const p=b.n?Math.round(100*b.ok/b.n):0;
+        return `<div style="padding:7px 0;border-bottom:1px solid var(--line)"><div class="row"><span style="flex:1">${esc(nm(b.subject_slug))}</span><span class="muted">${b.ok}/${b.n} · ${p}%</span></div>
+        <div class="barbg"><div class="barfill ${p<50?'warn':''}" style="width:${p}%"></div></div></div>`;}).join('')||'<p class="muted">Abhi koi practice nahi.</p>'}
+    </div>
+    <div class="card"><h3>Weak topics</h3>
+      ${(d.weak||[]).map(w=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><span style="flex:1">${esc(w.source)}</span><span class="badge warn">${w.pct}%</span><span class="muted">${w.n}Q</span></div>`).join('')||'<p class="muted">Koi weak topic nahi (ya data kam hai).</p>'}
+    </div>
+    <div class="card"><h3>Recent mocks</h3>
+      ${(d.recent_mocks||[]).map(m=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><span style="flex:1">${esc(nm(m.subject_slug))}</span><span class="badge">${m.score}/${m.total}</span><span class="muted">${new Date(m.completed_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span></div>`).join('')||'<p class="muted">Koi mock nahi diya abhi tak.</p>'}
+    </div>`);
+    document.getElementById('backB').onclick=()=>{detailId=null;render();};
+    const msg=document.getElementById('dMsg');
+    const note=(t,ok)=>{msg.textContent=t;msg.classList.remove('hidden');msg.classList.toggle('ok',!!ok);};
+    document.getElementById('dPaid').onclick=async()=>{
+      const{error}=await sb.rpc('admin_bulk_paid',{p_ids:[u.id],p_paid:!u.is_paid,p_days:defDays});
+      if(error){note(error.message);return;}
+      u.is_paid=!u.is_paid;u.paid_until=u.is_paid?new Date(Date.now()+defDays*86400000).toISOString().slice(0,10):null;
+      note(u.is_paid?'PAID kar diya ('+u.paid_until+' tak).':'Free kar diya.',true);
+      document.getElementById('dPaid').textContent=u.is_paid?'PAID':'FREE';
+      document.getElementById('dPaid').classList.toggle('on',u.is_paid);
+      document.getElementById('dUntil').value=u.paid_until||'';refreshStudents();};
+    document.getElementById('dExt').onclick=async()=>{
+      const{error}=await sb.rpc('admin_extend',{p_ids:[u.id],p_days:defDays});
+      if(error){note(error.message);return;}
+      note('Validity +'+defDays+' din extend ho gayi.',true);renderDetail();refreshStudents();};
+    document.getElementById('dUntil').onchange=async e=>{
+      await sb.from('profiles').update({paid_until:e.target.value||null}).eq('id',u.id);
+      note('Validity date saved.',true);refreshStudents();};
+  }
+  render();
+}
 
 async function route(){const h=location.hash||'#/home';
   const{data}=await sb.auth.getSession();S.session=data.session;
