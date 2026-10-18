@@ -47,12 +47,19 @@ function vLogin(){document.getElementById('navbar').classList.add('hidden');docu
   <label>Email</label><input id="fEmail" type="email" autocomplete="email">
   <label>Password</label><input id="fPass" type="password" autocomplete="current-password">
   <button class="btn primary block" id="goBtn" type="button">Login</button>
+  <p class="center mt"><a href="#" id="forgotL">Forgot password?</a></p>
   <div class="notice hidden" id="authMsg"></div></div>
   <p class="muted center mt">Free account: practice sets + 1 free mock per subject + basic dashboard.<br>Paid (ask Mahendra): all 6,400+ questions, unlimited mocks, weak-topic analysis, rank.</p>`);
   let mode='in';
   const tab=m=>{mode=m;document.getElementById('tabIn').classList.toggle('on',m==='in');document.getElementById('tabUp').classList.toggle('on',m==='up');
     document.getElementById('nameRow').classList.toggle('hidden',m==='in');document.getElementById('goBtn').textContent=m==='in'?'Login':'Create account';};
   document.getElementById('tabIn').onclick=()=>tab('in');document.getElementById('tabUp').onclick=()=>tab('up');
+  document.getElementById('forgotL').onclick=async(e)=>{e.preventDefault();
+    const email=document.getElementById('fEmail').value.trim(),msg=document.getElementById('authMsg');
+    if(!email){msg.textContent='Pehle apna email upar daalo.';msg.classList.remove('hidden');return;}
+    const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:'https://rajputm236-debug.github.io/my-first-project/portal.html'});
+    msg.classList.remove('hidden');
+    if(error){msg.textContent=error.message;}else{msg.textContent='Reset link bhej diya. Email kholo, link dabao, naya password set karo.';msg.classList.add('ok');}};
   document.getElementById('goBtn').onclick=async()=>{
     const email=document.getElementById('fEmail').value.trim(),pass=document.getElementById('fPass').value,msg=document.getElementById('authMsg');
     msg.classList.add('hidden');
@@ -280,6 +287,19 @@ async function route(){const h=location.hash||'#/home';
   return vHome();}
 document.getElementById('logoutBtn').onclick=async()=>{await sb.auth.signOut();S.profile=null;S.qcache={};S.subjects=null;location.hash='#/login';route();};
 window.addEventListener('hashchange',route);
-sb.auth.onAuthStateChange((e,s)=>{if(e==='SIGNED_IN'||e==='SIGNED_OUT')S.qcache={};S.session=s;});
+function vReset(){document.getElementById('navbar').classList.add('hidden');document.getElementById('logoutBtn').classList.add('hidden');
+  setApp(`<div class="card center"><h2>Naya password set karo</h2></div>
+  <div class="card"><label>New password (6+ characters)</label><input id="fNewPass" type="password" autocomplete="new-password">
+  <button class="btn primary block" id="resetBtn" type="button">Save password</button>
+  <div class="notice hidden" id="resetMsg"></div></div>`);
+  document.getElementById('resetBtn').onclick=async()=>{
+    const pass=document.getElementById('fNewPass').value,msg=document.getElementById('resetMsg');
+    if(pass.length<6){msg.textContent='6+ characters ka password daalo.';msg.classList.remove('hidden');return;}
+    const{error}=await sb.auth.updateUser({password:pass});
+    msg.classList.remove('hidden');
+    if(error){msg.textContent=error.message;return;}
+    msg.textContent='Password set ho gaya. Ab login karo.';msg.classList.add('ok');
+    await sb.auth.signOut();S.profile=null;S.qcache={};setTimeout(()=>{location.hash='#/login';route();},1200);};}
+sb.auth.onAuthStateChange((e,s)=>{if(e==='SIGNED_IN'||e==='SIGNED_OUT')S.qcache={};S.session=s;if(e==='PASSWORD_RECOVERY'){vReset();}});
 route();
 })();
