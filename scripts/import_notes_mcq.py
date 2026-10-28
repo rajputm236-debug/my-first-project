@@ -88,7 +88,8 @@ def attach_revision(previous,row,batch,question,correction_ids=(),expand_r2=Fals
     assert previous is not None,('Revision must reference existing ID',row['id'])
     if previous.get('revision')==marker and content_signature(previous)!=content_signature(row) and row['id'] in correction_ids:
         history=list(previous.get('revisionHistory',[]))
-        baseline=next((v for v in history if v.get('revision')=='original'),previous)
+        history_dict={v.get('revision'):v for v in history}
+        baseline=history_dict.get('original',previous)
         changed=content_signature(baseline)!=content_signature(row)
         assert question['changed']==changed,('Correction flag disagrees with original baseline',row['id'])
         if not history:
