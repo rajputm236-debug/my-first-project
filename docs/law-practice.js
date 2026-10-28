@@ -8,6 +8,52 @@ function save(){try{localStorage.setItem(key,JSON.stringify({version:1,answers,b
 function buildView(keepId){const term=$('search').value.trim().toLowerCase(),mod=$('module').value,mode=$('mode').value;view=qs.filter(q=>(!mod||modOf(q)===mod)&&(!term||[q.question,q.explanation,q.source,q.id,...q.options].join(' ').toLowerCase().includes(term))&&(mode==='all'||mode==='unanswered'&&answers[q.id]===undefined||mode==='wrong'&&answers[q.id]!==undefined&&answers[q.id]!==q.correct||mode==='bookmarked'&&bookmarks.includes(q.id)));const wanted=view.findIndex(q=>q.id===Number(keepId));index=wanted>=0?wanted:Math.min(index,Math.max(0,view.length-1));render()}
 function render(){const q=view[index];$('count').textContent=view.length+' questions';$('status').textContent=q?'Question '+(index+1)+' of '+view.length:'No matching questions';$('prev').disabled=!q||index===0;$('next').disabled=!q||index>=view.length-1;if(!q){$('results').innerHTML='<div class="panel"><b>No questions match.</b><p>Change the answer filter, clear search or choose another module.</p><button id="lawClear">Clear filters</button></div>';$('lawClear').onclick=()=>{$('search').value='';$('module').value='';$('mode').value='all';index=0;buildView()};save();return}const selected=answers[q.id],done=selected!==undefined,marked=bookmarks.includes(q.id);$('results').innerHTML='<article class="qcard"><div class="qhead"><span class="tag">Q'+q.id+'</span><span class="tag">'+modOf(q)+'</span><span class="law-result">Question '+(index+1)+' / '+view.length+'</span></div><div class="qtext">'+esc(q.question)+'</div><div class="opts">'+q.options.map((text,i)=>'<button class="opt '+(done&&i===q.correct?'correct':done&&i===selected?'wrong':'')+'" data-i="'+i+'" aria-pressed="'+(i===selected)+'"><span class="opt-label">'+String.fromCharCode(65+i)+'</span><span class="opt-text">'+esc(text)+'</span></button>').join('')+'</div>'+(done?'<div class="answer law-feedback"><b>'+(selected===q.correct?'Correct!':'Not quite.')+' Correct answer: ('+String.fromCharCode(65+q.correct)+')</b> '+esc(q.options[q.correct])+'<p>'+esc(q.explanation)+'</p></div>':'')+'<div class="source">Source tag: '+esc(q.source)+'</div><div class="law-qnav"><button class="secondary" id="lawPrev" '+(index===0?'disabled':'')+'>← Previous</button><button id="lawNext" '+(index>=view.length-1?'disabled':'')+'>Next question →</button><button class="secondary" id="lawRetry" '+(!done?'disabled':'')+'>Clear answer / retry</button><button class="secondary" id="lawBookmark" aria-pressed="'+marked+'">'+(marked?'★ Bookmarked':'☆ Bookmark')+'</button></div></article>';$('results').querySelectorAll('[data-i]').forEach(btn=>btn.onclick=()=>{const picked=Number(btn.dataset.i);if(answers[q.id]===picked)delete answers[q.id];else answers[q.id]=picked;render()});$('lawRetry').onclick=()=>{delete answers[q.id];render()};$('lawBookmark').onclick=()=>{bookmarks=marked?bookmarks.filter(id=>id!==q.id):[...bookmarks,q.id];render()};$('lawPrev').onclick=()=>navigate(-1);$('lawNext').onclick=()=>navigate(1);save()}
 function navigate(delta){index=Math.max(0,Math.min(view.length-1,index+delta));render();$('results').scrollIntoView({behavior:'smooth',block:'start'})}
-$('prev').onclick=()=>navigate(-1);$('next').onclick=()=>navigate(1);$('search').addEventListener('input',()=>{index=0;buildView()});['module','mode'].forEach(id=>$(id).onchange=()=>{index=0;buildView()});$('lawReset').onclick=()=>{if(confirm('Delete saved Law answers and bookmarks on this device? Export first if needed.')){answers={};bookmarks=[];index=0;buildView()}};$('lawExport').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify({app:'JVVNL Law Practice',version:1,answers,bookmarks},null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='jvvnl-law-progress.json';a.click();URL.revokeObjectURL(url)};
+$('prev').onclick = () => navigate(-1);
+$('next').onclick = () => navigate(1);
+
+$('search').addEventListener('input', () => {
+  index = 0;
+  buildView();
+});
+
+['module', 'mode'].forEach((id) => {
+  $(id).onchange = () => {
+    index = 0;
+    buildView();
+  };
+});
+
+$('lawReset').onclick = () => {
+  if (
+    confirm(
+      'Delete saved Law answers and bookmarks on this device? Export first if needed.'
+    )
+  ) {
+    answers = {};
+    bookmarks = [];
+    index = 0;
+    buildView();
+  }
+};
+
+$('lawExport').onclick = () => {
+  const url = URL.createObjectURL(
+    new Blob(
+      [
+        JSON.stringify(
+          { app: 'JVVNL Law Practice', version: 1, answers, bookmarks },
+          null,
+          2
+        ),
+      ],
+      { type: 'application/json' }
+    )
+  );
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'jvvnl-law-progress.json';
+  a.click();
+  URL.revokeObjectURL(url);
+};
 if(restored.module&&[...$('module').options].some(o=>o.value===restored.module))$('module').value=restored.module;if(restored.mode&&[...$('mode').options].some(o=>o.value===restored.mode))$('mode').value=restored.mode;$('search').value=String(restored.search||'');buildView(restored.questionId);
 })();
