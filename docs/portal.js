@@ -1,6 +1,6 @@
 (()=>{'use strict';
-const SUPA_URL='https://jvvnl-quiz-api.crypticfiles40.workers.dev';
-const SUPA_KEY='sb_publishable_D90wb1cJD2X6PjgIIa645Q_fofHiSku';
+const SUPA_URL='__SUPA_URL__';
+const SUPA_KEY='__SUPA_KEY__';
 const sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 const app=document.getElementById('app');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));

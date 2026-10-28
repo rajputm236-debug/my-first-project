@@ -22,6 +22,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Inject Secrets
+        env:
+          SUPA_URL: ${{ secrets.SUPA_URL }}
+          SUPA_KEY: ${{ secrets.SUPA_KEY }}
+        run: |
+          sed -i "s|__SUPA_URL__|${SUPA_URL}|g" docs/portal.js
+          sed -i "s|__SUPA_KEY__|${SUPA_KEY}|g" docs/portal.js
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site
