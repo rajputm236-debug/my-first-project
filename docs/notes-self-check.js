@@ -3,10 +3,10 @@
 const form=document.getElementById('quizform'),result=document.getElementById('result');if(!form||!result)return;
 result.hidden=true;
 const key='jvvnl-notes-self-check-'+location.pathname.split('/').pop()+'-v1';let saved={};
-try{const state=JSON.parse(localStorage.getItem(key)||'{}');if(state&&typeof state==='object')saved=state}catch(e){}
+try{const state=JSON.parse(localStorage.getItem(key)||'{}');if(state&&typeof state==='object')saved=state}catch(e){console.warn('Could not read state:',e)}
 const inputs=[...form.querySelectorAll('input[type="radio"]')];
 inputs.forEach(input=>{input.checked=saved[input.name]===input.value});
-function save(){const data={};inputs.forEach(input=>{if(input.checked)data[input.name]=input.value});try{localStorage.setItem(key,JSON.stringify(data))}catch(e){}result.replaceChildren();result.hidden=true}
+function save(){const data={};inputs.forEach(input=>{if(input.checked)data[input.name]=input.value});try{localStorage.setItem(key,JSON.stringify(data))}catch(e){console.warn('Could not save state:',e)}result.replaceChildren();result.hidden=true}
 let checkedBefore=null;
 form.addEventListener('pointerdown',event=>{const input=event.target.closest('input[type="radio"]')||event.target.closest('label')?.querySelector('input[type="radio"]');checkedBefore=input?.checked?input:null});
 form.addEventListener('keydown',event=>{if(event.key===' '&&event.target.matches('input[type="radio"]'))checkedBefore=event.target.checked?event.target:null});
