@@ -28,10 +28,12 @@ def build():
  accounting=inline(DOCS/'accounting-mcq-practice.html','const questions=')
  for q in accounting:
   bank['questions'].append({'id':q['id'],'sourceNumber':q['number'],'subject':'accounting','subjectName':'Accounting','topic':q['chapter'],'question':q['question'],'options':[q['options'][k] for k in 'ABCD'],'answer':ord(q['answer'])-65,'explanation':q['explanation'],'source':'Accounting Notes Batch '+q['batch'][1:],'sourceBank':'notes','batchNumber':int(q['batch'][1:]),'legacyProgress':{'storageKey':'jvvnl-accounting-notes-progress-v1','questionId':q['id'],'optionFormat':'letter'}})
+ id_to_q = {q['id']: q for q in bank['questions']}
  for accounting_row in accounting:
-  target=next(q for q in bank['questions'] if q['id']==accounting_row['id'])
-  for key in ['revision','revisionChanged','revisionHistory','contentSignature']:
-   if key in accounting_row:target[key]=accounting_row[key]
+  target = id_to_q.get(accounting_row['id'])
+  if target:
+   for key in ['revision','revisionChanged','revisionHistory','contentSignature']:
+    if key in accounting_row:target[key]=accounting_row[key]
  sections=[];seen=set()
  for section in bank['sections']:
   section=copy.deepcopy(section);slug=section['slug'];slug='cost-accounting' if slug in cost_slugs else 'auditing' if slug in audit_slugs else 'computer-awareness' if slug=='computer-applications' else slug
