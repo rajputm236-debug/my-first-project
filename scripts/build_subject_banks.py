@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Prepare consolidated Costing/Auditing data without touching source banks."""
-import copy,json,pathlib
+import copy,json,pathlib,collections
 from import_notes_mcq import content_signature
 ROOT=pathlib.Path(__file__).resolve().parents[1];DOCS=ROOT/'docs'
 def inline(path,marker):return json.JSONDecoder().raw_decode(path.read_text().split(marker,1)[1].lstrip())[0]
@@ -54,8 +54,9 @@ def build():
  # Keep the single consolidated subject entry/count current after partial imports.
  home=(DOCS/'index.html').read_text()
  import re
+ subject_counts=collections.Counter(q['subject'] for q in bank['questions'])
  for slug,title,label in [('cost-accounting','Cost Accounting','Costing'),('auditing','Auditing &amp; Cost Audit','Auditing')]:
-  count=sum(q['subject']==slug for q in bank['questions'])
+  count=subject_counts[slug]
   def card(m):
    c=m[0]
    if '<h3>'+title+'</h3>' not in c and '<h3>'+title.replace('&amp;','&')+'</h3>' not in c:return c
@@ -66,7 +67,7 @@ def build():
  # Replace split bank navigation with one destination for each syllabus subject.
  cards=[('Management Accounting','management-accounting','Management Accounting'),('Computer Awareness & Applications','computer-awareness','Computer Awareness &amp; Applications'),('Accounting MCQ Practice','accounting','Accounting')]
  for oldtitle,slug,title in cards:
-  count=sum(q['subject']==slug for q in bank['questions'])
+  count=subject_counts[slug]
   def single(m):
    c=m[0]
    if '<h3>'+oldtitle+'</h3>' not in c and '<h3>'+title+'</h3>' not in c:return c
@@ -76,7 +77,7 @@ def build():
    return c[:start]+f'<div class="cardfoot"><span>{count:,} question records · all sources</span><a class="cardlink" href="./subject-practice.html?subject={slug}">Open subject →</a></div></article>'
   home=re.sub(r'<article\b.*?</article>',single,home,flags=re.S)
  def newcard(slug,title):
-  count=sum(q['subject']==slug for q in bank['questions'])
+  count=subject_counts[slug]
   return f'<article class="subject available" data-category="commerce"><div class="subjecttop"><div class="subjecticon">📘</div><span class="status ready">All sources together</span></div><h3>{title}</h3><p>All {title} questions in one place. Filter by chapter, source or batch without changing pages.</p><div class="cardfoot"><span>{count:,} question records · all sources</span><a class="cardlink" href="./subject-practice.html?subject={slug}">Open subject →</a></div></article>'
  def split(m):
   c=m[0]
