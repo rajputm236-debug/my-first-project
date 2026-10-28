@@ -94,16 +94,16 @@ async function vHome(){nav('home');await fetchSubjects();
   const note=localStorage.getItem('portal_import_note');if(note)localStorage.removeItem('portal_import_note');
   const{data:openMocks}=await sb.from('mock_attempts').select('id,subject_slug,started_at').eq('user_id',S.session.user.id).eq('status','in_progress').order('started_at',{ascending:false}).limit(1);
   setApp(`${note?`<div class="notice ok">${esc(note)}</div>`:''}
-  ${openMocks&&openMocks.length?`<div class="card"><h3>Paused mock</h3><p class="muted">${esc(subjName(openMocks[0].subject_slug))} - chalu hai</p><a class="btn primary block" href="#/mockrun/${openMocks[0].id}">Resume mock</a></div>`:''}
+  ${openMocks&&openMocks.length?`<div class="card"><h3>Paused mock</h3><p class="muted">${esc(subjName(openMocks[0].subject_slug))} - chalu hai</p><a class="btn primary block" href="#/mockrun/${esc(openMocks[0].id)}">Resume mock</a></div>`:''}
   <div class="card"><div class="row"><h2 style="flex:1;margin:0">Subjects</h2>${planChip()}</div><p class="muted">${paid?'Full access: saare questions aur unlimited mocks.':'Free access: har subject me pehle '+S.config.free_question_count+' questions + 1 free mock.'}</p></div>
-  <div id="subjList">${S.subjects.map(s=>`<div class="subj" data-slug="${s.slug}"><div class="nm"><b>${esc(s.name)}</b><span class="muted">${paid?'Full bank':'Free: '+s.free_question_count+' Q'}</span></div>${paid?'<span class="badge paid">PAID</span>':'<span class="badge free">FREE</span>'}</div>`).join('')}</div>
+  <div id="subjList">${S.subjects.map(s=>`<div class="subj" data-slug="${esc(s.slug)}"><div class="nm"><b>${esc(s.name)}</b><span class="muted">${paid?'Full bank':'Free: '+s.free_question_count+' Q'}</span></div>${paid?'<span class="badge paid">PAID</span>':'<span class="badge free">FREE</span>'}</div>`).join('')}</div>
   ${!paid?`<div class="card center"><h3>${S.profile&&S.profile.is_paid?'Plan khatam ho gaya':'Unlock full access'}</h3><p class="muted">Saare 6,400+ questions, unlimited mocks, weak-topic analysis, rank. ${S.profile&&S.profile.is_paid?'Renew ke liye':'Full access ke liye'} Topper Haveli admin se contact karo.</p></div>`:''}`);
   document.querySelectorAll('.subj').forEach(d=>d.onclick=()=>{location.hash='#/subject/'+d.dataset.slug;});}
 
 async function vSubject(slug){nav('home');await fetchSubjects();
   setApp(`<div class="card"><h2>${esc(subjName(slug))}</h2><p class="muted">Kya karna hai?</p>
-  <a class="btn primary block" href="#/practice/${slug}">Practice</a>
-  <a class="btn block" href="#/mocksetup/${slug}">Mock test</a></div>`);}
+  <a class="btn primary block" href="#/practice/${esc(slug)}">Practice</a>
+  <a class="btn block" href="#/mocksetup/${esc(slug)}">Mock test</a></div>`);}
 
 async function vPractice(slug){nav('home');
   setApp('<div class="card center muted">Questions load ho rahe hain…</div>');
@@ -117,12 +117,12 @@ async function vPractice(slug){nav('home');
   function render(){const list=filtered();if(idx>=list.length)idx=Math.max(0,list.length-1);
     const q=list[idx];
     const srcOpts=['<option value="all">All sources/chapters</option>'].concat(sources.map(s=>`<option ${s===src?'selected':''} value="${esc(s)}">${esc(s)}</option>`)).join('');
-    if(!q){setApp(`<div class="card"><div class="row"><a class="chipbtn" href="#/subject/${slug}">&lsaquo; Back</a></div>
+    if(!q){setApp(`<div class="card"><div class="row"><a class="chipbtn" href="#/subject/${esc(slug)}">&lsaquo; Back</a></div>
       <div class="row mt"><select id="fSrc">${srcOpts}</select></div>
       <div class="row mt">${['all','unanswered','wrong','correct'].map(f=>`<button class="chipbtn ${f===filter?'on':''}" data-f="${f}" type="button">${f}</button>`).join('')}</div>
       <p class="center muted mt">Is filter me koi question nahi.</p></div>`);wire(list);return;}
     const a=amap[q.id],done=a!==undefined;
-    setApp(`<div class="card"><div class="row"><a class="chipbtn" href="#/subject/${slug}">&lsaquo; Back</a><span class="muted">${idx+1} / ${list.length}</span><span class="sp"></span><span class="muted">${esc(subjName(slug))}</span></div>
+    setApp(`<div class="card"><div class="row"><a class="chipbtn" href="#/subject/${esc(slug)}">&lsaquo; Back</a><span class="muted">${idx+1} / ${list.length}</span><span class="sp"></span><span class="muted">${esc(subjName(slug))}</span></div>
     <div class="row mt"><select id="fSrc">${srcOpts}</select></div>
     <div class="row mt">${['all','unanswered','wrong','correct'].map(f=>`<button class="chipbtn ${f===filter?'on':''}" data-f="${f}" type="button">${f}</button>`).join('')}</div></div>
     <div class="card"><p class="muted">${esc(q.source||'')}</p><p class="qtext">${esc(q.question)}</p>
@@ -144,14 +144,14 @@ async function vMockSetup(slug){nav('home');await fetchSubjects();
   const paid=isPaid();
   const{count}=await sb.from('mock_attempts').select('id',{count:'exact',head:true}).eq('user_id',S.session.user.id).eq('subject_slug',slug);
   const freeLeft=S.config.free_mock_per_subject?(count<1):false;
-  if(!paid&&!freeLeft){setApp(`<div class="card center"><h3>Free mock used</h3><p class="muted">${esc(subjName(slug))} ka free mock ho chuka. Paid me unlimited mocks milte hain.</p><a class="btn block" href="#/subject/${slug}">Back</a></div>`);return;}
+  if(!paid&&!freeLeft){setApp(`<div class="card center"><h3>Free mock used</h3><p class="muted">${esc(subjName(slug))} ka free mock ho chuka. Paid me unlimited mocks milte hain.</p><a class="btn block" href="#/subject/${esc(slug)}">Back</a></div>`);return;}
   const qs=await fetchQuestions(slug);
   const maxN=qs.length;
   setApp(`<div class="card"><h2>Mock - ${esc(subjName(slug))}</h2>
   <p class="muted">${paid?'Paid: apni pasand ka size.':'FREE mock: 25 questions, 25 minutes.'} Available: ${maxN} questions.</p>
   ${paid?`<label>Questions</label><select id="mCount">${[25,50,100].filter(n=>n<=maxN).map(n=>`<option value="${n}">${n} questions (${n} min)</option>`).join('')}</select>`:''}
   <button class="btn primary block" id="startM" type="button">Start mock</button>
-  <a class="btn block" href="#/subject/${slug}">Back</a></div>`);
+  <a class="btn block" href="#/subject/${esc(slug)}">Back</a></div>`);
   document.getElementById('startM').onclick=async()=>{
     const N=paid?Number(document.getElementById('mCount').value):25;
     const ids=qs.map(q=>q.id);
@@ -204,7 +204,7 @@ async function vMockRun(id){nav('home');
   function renderResult(mm){const pct=mm.total?Math.round(100*mm.score/mm.total):0;
     setApp(`<div class="card center"><h2>Mock result</h2>
     <div class="grid2 mt"><div class="stat"><b>${mm.score}/${mm.total}</b><span>Score</span></div><div class="stat"><b>${pct}%</b><span>Accuracy</span></div></div>
-    <a class="btn block" href="#/mockreview/${mm.id}">Review answers</a><a class="btn block" href="#/dashboard">Dashboard</a><a class="btn block" href="#/home">Home</a></div>`);}
+    <a class="btn block" href="#/mockreview/${esc(mm.id)}">Review answers</a><a class="btn block" href="#/dashboard">Dashboard</a><a class="btn block" href="#/home">Home</a></div>`);}
   if(mockTimer)clearInterval(mockTimer);
   mockTimer=setInterval(tick,1000);render();}
 
@@ -247,7 +247,7 @@ async function vDashboard(){nav('dashboard');await fetchSubjects();
     <div class="stat"><b>${streak}</b><span>Day streak</span></div><div class="stat"><b>${(mocks||[]).length}</b><span>Mocks done</span></div></div></div>
   <div class="card"><h3>Subject-wise</h3>${S.subjects.filter(s=>per[s.slug]).map(s=>`<div class="row"><span style="flex:1">${esc(s.name)}</span><span class="muted">${per[s.slug].c}/${per[s.slug].n} · ${Math.round(100*per[s.slug].c/per[s.slug].n)}%</span></div>`).join('')||'<p class="muted">Abhi koi practice nahi.</p>'}</div>
   ${paidHtml}
-  <div class="card"><h3>Mock history</h3>${(mocks||[]).map(mk=>`<div class="row"><span style="flex:1">${esc(subjName(mk.subject_slug))}</span><span class="muted">${(mk.completed_at||'').slice(0,10)}</span><a href="#/mockreview/${mk.id}"><span class="badge paid">${mk.score}/${mk.total}</span></a></div>`).join('')||'<p class="muted">Koi mock nahi.</p>'}</div>
+  <div class="card"><h3>Mock history</h3>${(mocks||[]).map(mk=>`<div class="row"><span style="flex:1">${esc(subjName(mk.subject_slug))}</span><span class="muted">${(mk.completed_at||'').slice(0,10)}</span><a href="#/mockreview/${esc(mk.id)}"><span class="badge paid">${mk.score}/${mk.total}</span></a></div>`).join('')||'<p class="muted">Koi mock nahi.</p>'}</div>
   ${!paid?'<div class="card center"><p class="muted">Paid me: weak-topic analysis, rank, unlimited mocks, saare questions.</p></div>':''}`);}
 
 function fmtAgo(iso){if(!iso)return 'kabhi nahi';
@@ -298,14 +298,14 @@ async function vAdmin(){nav('admin');
     const acc=u.answers?Math.round(100*u.correct/u.answers)+'%':'-';
     const st=planStatus(u);
     const expiring=activePlan(u)&&u.paid_until&&new Date(u.paid_until).getTime()-Date.now()<15*86400000;
-    return `<div class="urow" data-uid="${u.id}">
-      <input type="checkbox" class="uchk" data-chk="${u.id}" ${chk}>
+    return `<div class="urow" data-uid="${esc(u.id)}">
+      <input type="checkbox" class="uchk" data-chk="${esc(u.id)}" ${chk}>
       ${avatar(u.display_name,u.email)}
       <div class="umain"><b>${esc(u.display_name||'(naam nahi)')}</b> ${u.is_admin?'<span class="badge warn">ADMIN</span>':''}<br>
       <span class="muted">${esc(u.email||'')}</span><br>
       <span class="muted">${u.answers} ans · ${acc} · ${u.mocks} mocks · ${fmtAgo(u.last_active)}</span></div>
       <div class="uright"><span class="badge ${st.c}">${st.t}</span>
-      ${(expiring||st.t==='EXPIRED')?`<button class="chipbtn smallbtn" data-renew="${u.id}" type="button">&#8635;+30d</button>`:''}</div></div>`;}
+      ${(expiring||st.t==='EXPIRED')?`<button class="chipbtn smallbtn" data-renew="${esc(u.id)}" type="button">&#8635;+30d</button>`:''}</div></div>`;}
 
   function render(){
     const list=filteredStudents();
@@ -331,7 +331,7 @@ async function vAdmin(){nav('admin');
     </div>
     <div class="card"><h3>Free preview settings</h3>
       <p class="muted">Har subject me free users ko kitne questions milte hain.</p>
-      ${S.subjects.map(s=>`<div class="row"><span style="flex:1">${esc(s.name)}</span><input type="number" data-free="${s.slug}" value="${s.free_question_count}" style="width:90px;padding:6px"></div>`).join('')}
+      ${S.subjects.map(s=>`<div class="row"><span style="flex:1">${esc(s.name)}</span><input type="number" data-free="${esc(s.slug)}" value="${s.free_question_count}" style="width:90px;padding:6px"></div>`).join('')}
       <div class="row mt"><span style="flex:1">Paid validity (din)</span><input type="number" id="validDays" value="${defDays}" style="width:90px;padding:6px"></div>
       <button class="btn primary block mt" id="saveCfg" type="button">Save settings</button>
       <div class="notice hidden" id="cfgMsg"></div>
@@ -470,7 +470,7 @@ async function vAdmin(){nav('admin');
       const al={plan:'Plan',trial:'Trial',extend:'Extend',reduce:'Reduce',revoke:'Revoke',renew:'Renew'};
       el.classList.remove('muted');
       el.innerHTML=hist.map(h=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line);gap:8px;flex-wrap:wrap">
-        <span class="badge">${al[h.action]||h.action}</span>
+        <span class="badge">${esc(al[h.action]||h.action)}</span>
         ${h.days?`<span class="muted small">${h.days>0?'+':''}${h.days}d</span>`:''}
         ${h.to_until?`<span class="muted small">→ ${new Date(h.to_until).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span>`:''}
         ${h.amount?`<span class="muted small">₹${esc(h.amount)}${h.mode?' · '+esc(h.mode):''}</span>`:''}
