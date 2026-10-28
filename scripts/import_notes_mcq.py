@@ -135,9 +135,32 @@ def main():
             published,_=json.JSONDecoder().raw_decode((DOCS/'accounting-mcq-practice.html').read_text().split('const questions=',1)[1].lstrip())
         else:
             published=json.JSONDecoder().raw_decode((DOCS/'question-bank.js').read_text().split('=',1)[1].lstrip())[0]['questions']
+        published_by_batch = collections.defaultdict(set)
+        if args.subject == 'accounting':
+            for q in published:
+                batch_val = q.get('batch')
+                if isinstance(batch_val, str) and batch_val.startswith('b'):
+                    try:
+                        published_by_batch[int(batch_val[1:])].add(q['id'])
+                    except ValueError:
+                        pass
+        else:
+            subject_slug = MAP[args.subject][0]
+            for q in published:
+                if q.get('subject') == subject_slug and 'batchNumber' in q:
+                    published_by_batch[q['batchNumber']].add(q['id'])
+
+        supplied_by_batch = collections.defaultdict(set)
+        for b, q in rows:
+            batch_num = b['batch']
+            if args.subject == 'accounting':
+                supplied_by_batch[batch_num].add(f"b{batch_num}-q{q['q_no']}")
+            else:
+                supplied_by_batch[batch_num].add(f"notes-b{batch_num:03d}-q{q['q_no']:03d}")
+
         for number in {b['batch'] for b,q in rows if b.get('revision')}:
-            current={q['id'] for q in published if (q.get('batch')==f'b{number}' if args.subject=='accounting' else q.get('batchNumber')==number and q['subject']==MAP[args.subject][0])}
-            supplied={f"b{number}-q{q['q_no']}" if args.subject=='accounting' else f"notes-b{number:03d}-q{q['q_no']:03d}" for b,q in rows if b['batch']==number}
+            current = published_by_batch.get(number, set())
+            supplied = supplied_by_batch.get(number, set())
             if args.expand_r2 or args.expand_r1:
                 expected='R2' if args.expand_r2 else 'R1'
                 assert args.subject!='accounting' and all(b.get('revision')==expected for b,q in rows), 'Expansion requires matching shared-bank revision export'
