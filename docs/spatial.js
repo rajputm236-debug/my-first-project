@@ -1,7 +1,7 @@
 (()=>{'use strict';
 // preview only: keep navigation inside the spatial preview pages
 const map={'index.html':'spatial-index.html','subject-practice.html':'spatial-subject-practice.html'};
-document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a)return;try{const u=new URL(a.href,location.href);if(u.origin!==location.origin)return;const f=u.pathname.split('/').pop()||'index.html';if(map[f]){u.pathname=u.pathname.replace(/[^/]*$/,map[f]);a.href=u.href}}catch(_){}},true);
+document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a)return;try{const u=new URL(a.href,location.href);if(u.origin!==location.origin)return;const f=u.pathname.split('/').pop()||'index.html';if(map[f]){u.pathname=u.pathname.replace(/[^/]*$/,map[f]);a.href=u.href}}catch(_){console.warn('Navigation error:',_)}},true);
 // subtle 3D tilt on mouse/pen only (skipped on touch for performance)
 if(!matchMedia('(hover:hover) and (pointer:fine)').matches||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
 let raf=0;
