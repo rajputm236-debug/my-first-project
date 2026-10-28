@@ -23,8 +23,67 @@ function close(){clearInterval(timer);modal.close();api.render()}
 function pause(hide=false){if(ended)return;remaining();paused=true;deadline=0;clearInterval(timer);persist();paint();if(hide){modal.close();tools.querySelector('#resumeSubjectAttempt').hidden=false;}}
 function run(){paused=false;deadline=Date.now()+seconds*1000;clearInterval(timer);if(mock)timer=setInterval(()=>{remaining();clock();persist();if(seconds<=0)submit()},250);persist();paint()}
 function submit(){if(ended)return;ended=true;clearInterval(timer);clearAttempt();tools.querySelector('#resumeSubjectAttempt').hidden=true;let correct=0;list.forEach(q=>{if(responses[q.id]!==undefined){api.state.answers[q.id]=responses[q.id];if(responses[q.id]===q.answer)correct++}});api.state.attempts=api.state.attempts||[];api.state.attempts.push({type:mock?'mock-summary':'random-summary',date:new Date().toISOString(),total:list.length,attempted:Object.keys(responses).length,correct,wrong:Object.keys(responses).length-correct,unanswered:list.length-Object.keys(responses).length});api.save();modal.innerHTML='<h2>'+(mock?'Mock':'Practice')+' finished</h2><p>'+correct+' correct · '+(Object.keys(responses).length-correct)+' incorrect · '+(list.length-Object.keys(responses).length)+' unanswered</p><p>Answers saved in your progress. Use Wrong answers to review.</p><button class="btn primary" id="closeMock">Return to questions</button>';modal.querySelector('#closeMock').onclick=close;}
-function paint(){const q=list[index];if(!q)return;modal.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px"><b>'+(mock?'Timed mock':'Random practice')+' · '+(index+1)+' / '+list.length+'</b><span id="mockClock"></span></div>'+(paused?'<p id="pauseStatus"><b>Paused. Your question, answers and remaining time are saved.</b></p><button class="btn primary" id="mockResume">Resume attempt</button>':'')+'<h2 style="font-size:1.2rem">'+esc(q.question)+'</h2><div class="options">'+q.options.map((o,i)=>'<button class="option" data-mock-option="'+i+'" '+(paused?'disabled':'')+' aria-pressed="'+(responses[q.id]===i)+'" style="'+(responses[q.id]===i?'outline:2px solid #2459a6':'')+'"><b>'+String.fromCharCode(65+i)+'.</b> '+esc(o)+'</button>').join('')+'</div>'+(!mock&&responses[q.id]!==undefined?'<p><b>Correct option: '+String.fromCharCode(65+q.answer)+'.</b> '+esc(q.explanation)+'</p>':'')+'<p><button class="btn" id="mockPrev" '+(paused||index===0?'disabled':'')+'>Previous</button> <button class="btn" id="mockNext" '+(paused||index===list.length-1?'disabled':'')+'>Next</button> <button class="btn primary" id="mockSubmit" '+(paused?'disabled':'')+'>Finish / submit</button></p><p><button class="btn" id="mockPause">'+(paused?'Save and close':'Pause / save')+'</button> <button class="btn" id="mockCancel">Discard this attempt</button></p>';
-modal.querySelectorAll('[data-mock-option]').forEach(btn=>btn.onclick=()=>{const value=Number(btn.dataset.mockOption);if(responses[q.id]===value)delete responses[q.id];else responses[q.id]=value;persist();paint()});modal.querySelector('#mockPrev').onclick=()=>{index--;persist();paint()};modal.querySelector('#mockNext').onclick=()=>{index++;persist();paint()};modal.querySelector('#mockSubmit').onclick=submit;modal.querySelector('#mockPause').onclick=()=>pause(paused);const resume=modal.querySelector('#mockResume');if(resume)resume.onclick=run;modal.querySelector('#mockCancel').onclick=()=>{if(confirm('Discard this saved attempt?')){ended=true;clearAttempt();tools.querySelector('#resumeSubjectAttempt').hidden=true;close()}};clock()}
+function paint() {
+  const q = list[index];
+  if (!q) return;
+
+  modal.innerHTML = '<div style="display:flex;justify-content:space-between;gap:10px"><b>' +
+    (mock ? 'Timed mock' : 'Random practice') + ' · ' + (index + 1) + ' / ' + list.length + '</b><span id="mockClock"></span></div>' +
+    (paused ? '<p id="pauseStatus"><b>Paused. Your question, answers and remaining time are saved.</b></p><button class="btn primary" id="mockResume">Resume attempt</button>' : '') +
+    '<h2 style="font-size:1.2rem">' + esc(q.question) + '</h2>' +
+    '<div class="options">' + q.options.map((o, i) => '<button class="option" data-mock-option="' + i + '" ' + (paused ? 'disabled' : '') + ' aria-pressed="' + (responses[q.id] === i) + '" style="' + (responses[q.id] === i ? 'outline:2px solid #2459a6' : '') + '"><b>' + String.fromCharCode(65 + i) + '.</b> ' + esc(o) + '</button>').join('') + '</div>' +
+    (!mock && responses[q.id] !== undefined ? '<p><b>Correct option: ' + String.fromCharCode(65 + q.answer) + '.</b> ' + esc(q.explanation) + '</p>' : '') +
+    '<p><button class="btn" id="mockPrev" ' + (paused || index === 0 ? 'disabled' : '') + '>Previous</button> ' +
+    '<button class="btn" id="mockNext" ' + (paused || index === list.length - 1 ? 'disabled' : '') + '>Next</button> ' +
+    '<button class="btn primary" id="mockSubmit" ' + (paused ? 'disabled' : '') + '>Finish / submit</button></p>' +
+    '<p><button class="btn" id="mockPause">' + (paused ? 'Save and close' : 'Pause / save') + '</button> ' +
+    '<button class="btn" id="mockCancel">Discard this attempt</button></p>';
+
+  modal.querySelectorAll('[data-mock-option]').forEach(btn => {
+    btn.onclick = () => {
+      const value = Number(btn.dataset.mockOption);
+      if (responses[q.id] === value) {
+        delete responses[q.id];
+      } else {
+        responses[q.id] = value;
+      }
+      persist();
+      paint();
+    };
+  });
+
+  modal.querySelector('#mockPrev').onclick = () => {
+    index--;
+    persist();
+    paint();
+  };
+
+  modal.querySelector('#mockNext').onclick = () => {
+    index++;
+    persist();
+    paint();
+  };
+
+  modal.querySelector('#mockSubmit').onclick = submit;
+
+  modal.querySelector('#mockPause').onclick = () => pause(paused);
+
+  const resume = modal.querySelector('#mockResume');
+  if (resume) {
+    resume.onclick = run;
+  }
+
+  modal.querySelector('#mockCancel').onclick = () => {
+    if (confirm('Discard this saved attempt?')) {
+      ended = true;
+      clearAttempt();
+      tools.querySelector('#resumeSubjectAttempt').hidden = true;
+      close();
+    }
+  };
+
+  clock();
+}
 function clock(){const el=modal.querySelector('#mockClock');if(el)el.textContent=mock?Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0'):''}
 function start(timed){if(!ended&&list.length){pause();if(!modal.open)modal.showModal();return}list=api.getView().slice();if(!list.length)return;for(let i=list.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[list[i],list[j]]=[list[j],list[i]]}list=list.slice(0,Number(tools.querySelector('#mockSize').value));responses={};index=0;ended=false;mock=timed;seconds=Number(tools.querySelector('#mockMinutes').value)*60;run();modal.showModal()}
 const resumeButton=document.createElement('button');resumeButton.id='resumeSubjectAttempt';resumeButton.className='btn primary';resumeButton.textContent='Resume saved attempt';resumeButton.hidden=true;tools.append(resumeButton);resumeButton.onclick=()=>{paint();if(!modal.open)modal.showModal()};
